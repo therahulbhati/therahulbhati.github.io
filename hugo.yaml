@@ -62,8 +62,8 @@ params:
 
   # home-info mode
   homeInfoParams:
-    Title: "Hi there \U0001F44B"
-    Content: Welcome to my blog here I share my thoughts on technology and fitness. Feel free to explore and connect with me through the social links below!
+    Title: "Hi there 👋"
+    Content: I'm a software engineer. I write about tech and fitness.
 
   socialIcons:
     - name: x
