@@ -37,8 +37,8 @@ params:
   env: production # to enable google analytics, opengraph, twitter-cards and schema.
   title: Rahul Bhati
   subtitle: "Tech Blog | System Design | Distributed Systems"
-  description: "This is my personal blog where I write about tech and fitness"
-  keywords: [Blog, Portfolio, Tech, System Design, Distributed Systems, programming, database systems, fitness, health] 
+  description: "This is my personal blog where I write about tech, fitness and more."
+  keywords: [Blog, Tech, System Design, Distributed Systems, golang, rust, programming, database systems, fitness, health] 
   author: Rahul Bhati
   DateFormat: "January 2, 2006"
   defaultTheme: auto # dark, light
