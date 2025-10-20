@@ -1,0 +1,75 @@
+baseURL: https://therahulbhati.github.io/
+languageCode: en-us
+title: Rahul Bhati
+theme: ["PaperMod"]
+pagination:
+  pagerSize: 5
+
+caches:
+  images:
+    dir: :cacheDir/images
+
+menu:
+  main:
+    - identifier: categories
+      name: Categories
+      url: /categories/
+      weight: 10
+    - identifier: tags
+      name: Tags
+      url: /tags/
+      weight: 20
+    - identifier: archives
+      name: Archives
+      url: /archives/
+      weight: 30
+
+enableRobotsTXT: true
+buildDrafts: false
+buildFuture: false
+buildExpired: false
+
+minify:
+  disableXML: true
+  minifyOutput: true
+
+params:
+  env: production # to enable google analytics, opengraph, twitter-cards and schema.
+  title: Rahul Bhati
+  subtitle: "Tech Blog | System Design | Distributed Systems"
+  description: "This is my personal blog where I write about tech and fitness"
+  keywords: [Blog, Portfolio, Tech, System Design, Distributed Systems, programming, database systems, fitness, health] 
+  author: Rahul Bhati
+  DateFormat: "January 2, 2006"
+  defaultTheme: auto # dark, light
+  disableThemeToggle: false
+
+  ShowReadingTime: true
+  ShowShareButtons: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: false
+  ShowWordCount: true
+  ShowRssButtonInSectionTermList: true
+  UseHugoToc: true
+  disableScrollToTop: false
+  comments: false
+  hidemeta: false
+  hideSummary: false
+  showtoc: false
+  tocopen: false
+
+
+  # home-info mode
+  homeInfoParams:
+    Title: "Hi there \U0001F44B"
+    Content: Welcome to my blog here I share my thoughts on technology and fitness. Feel free to explore and connect with me through the social links below!
+
+  socialIcons:
+    - name: x
+      url: "https://x.com/TheRahulBhati"
+    - name: linkedin
+      url: "https://www.linkedin.com/in/therahulbhati/"
+    - name: github
+      url: "https://github.com/therahulbhati"
+  
