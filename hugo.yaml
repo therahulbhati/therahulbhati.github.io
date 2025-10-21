@@ -72,4 +72,6 @@ params:
       url: "https://www.linkedin.com/in/therahulbhati/"
     - name: github
       url: "https://github.com/therahulbhati"
+    - name: rss
+      url: "/index.xml"
   
