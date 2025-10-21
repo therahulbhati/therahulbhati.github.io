@@ -36,9 +36,9 @@ minify:
 params:
   env: production # to enable google analytics, opengraph, twitter-cards and schema.
   title: Rahul Bhati
-  subtitle: "Tech Blog | System Design | Distributed Systems"
-  description: "This is my personal blog where I write about tech, fitness and more."
-  keywords: [Blog, Tech, System Design, Distributed Systems, golang, rust, programming, database systems, fitness, health] 
+  subtitle: "Backend Engineering | Distributed Systems | System Design"
+  description: "Backend engineer writing about distributed systems, microservices architecture, message queues, databases, and building scalable infrastructure. Sharing practical insights from working with high-throughput systems."
+  keywords: [Backend Engineering, Distributed Systems, System Design, Microservices, Message Queues, Golang, Databases, PostgreSQL, Redis, Kafka, Kubernetes, Scalable Architecture, Software Engineering, Infrastructure]
   author: Rahul Bhati
   DateFormat: "January 2, 2006"
   defaultTheme: auto # dark, light
