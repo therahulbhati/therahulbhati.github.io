@@ -48,7 +48,7 @@ params:
   ShowShareButtons: true
   ShowPostNavLinks: true
   ShowBreadCrumbs: true
-  ShowCodeCopyButtons: false
+  ShowCodeCopyButtons: true
   ShowWordCount: true
   ShowRssButtonInSectionTermList: true
   UseHugoToc: true
@@ -63,7 +63,7 @@ params:
   # home-info mode
   homeInfoParams:
     Title: "Hi there 👋"
-    Content: I'm a software engineer. I write about tech and fitness.
+    Content: I'm a backend engineer building highly scalable distributed systems. I write about system design, databases, and infrastructure.
 
   socialIcons:
     - name: x
