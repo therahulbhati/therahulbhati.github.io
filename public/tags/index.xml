@@ -2,10 +2,88 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Tags on Rahul Bhati</title>
-    <link>https://therahulbhati.github.io/tags/</link>
+    <link>http://localhost:1313/tags/</link>
     <description>Recent content in Tags on Rahul Bhati</description>
     <generator>Hugo -- 0.151.2</generator>
     <language>en-us</language>
-    <atom:link href="https://therahulbhati.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 21 Oct 2025 13:47:46 +0530</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Asynchronous Processing</title>
+      <link>http://localhost:1313/tags/asynchronous-processing/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/asynchronous-processing/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>AWS SQS</title>
+      <link>http://localhost:1313/tags/aws-sqs/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/aws-sqs/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Background Jobs</title>
+      <link>http://localhost:1313/tags/background-jobs/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/background-jobs/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Delay Queue</title>
+      <link>http://localhost:1313/tags/delay-queue/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/delay-queue/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Distributed Systems</title>
+      <link>http://localhost:1313/tags/distributed-systems/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/distributed-systems/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Job Queue</title>
+      <link>http://localhost:1313/tags/job-queue/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/job-queue/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Message Queue</title>
+      <link>http://localhost:1313/tags/message-queue/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/message-queue/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Postgres</title>
+      <link>http://localhost:1313/tags/postgres/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/postgres/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Redis</title>
+      <link>http://localhost:1313/tags/redis/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/redis/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>System Design</title>
+      <link>http://localhost:1313/tags/system-design/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/tags/system-design/</guid>
+      <description></description>
+    </item>
+    <item>
+      <title>Scheduling</title>
+      <link>http://localhost:1313/tags/scheduling/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/tags/scheduling/</guid>
+      <description></description>
+    </item>
   </channel>
 </rss>

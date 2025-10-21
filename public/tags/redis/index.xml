@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Redis on Rahul Bhati</title>
+    <link>http://localhost:1313/tags/redis/</link>
+    <description>Recent content in Redis on Rahul Bhati</description>
+    <generator>Hugo -- 0.151.2</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 21 Oct 2025 13:47:46 +0530</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/redis/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Delay Queues: Do It Later, Reliably</title>
+      <link>http://localhost:1313/posts/delay_queue/</link>
+      <pubDate>Tue, 21 Oct 2025 13:47:46 +0530</pubDate>
+      <guid>http://localhost:1313/posts/delay_queue/</guid>
+      <description>&lt;h2 id=&#34;what-is-a-delay-queue&#34;&gt;What is a delay queue?&lt;/h2&gt;
+&lt;p&gt;A delay queue holds a message/job until a specified delay time in the future, then makes it available for processing. It&amp;rsquo;s the simplest way to schedule &amp;ldquo;do this later&amp;rdquo; without blocking workers or rolling your own cron logic.&lt;/p&gt;
+&lt;h2 id=&#34;why-use-a-delay-queue&#34;&gt;Why use a delay queue?&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Retries with backoff&lt;/strong&gt; — retry failed tasks after a delay.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Scheduled tasks&lt;/strong&gt; — run at specific times (e.g., reminder emails).&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Rate smoothing&lt;/strong&gt; — spread out work to avoid thundering herds.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;when-to-choose-what&#34;&gt;When to choose what&lt;/h2&gt;
+&lt;h3 id=&#34;1-broker-based-delay-queues&#34;&gt;1. Broker-based Delay Queues&lt;/h3&gt;
+&lt;p&gt;Built-in support for delayed messages in brokers.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
