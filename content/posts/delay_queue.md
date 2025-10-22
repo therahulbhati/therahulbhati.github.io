@@ -82,6 +82,7 @@ ZREM delays <job_id>
 
 ### 3. Postgres + SKIP LOCKED
 Store jobs in your main database. Poll with `FOR UPDATE SKIP LOCKED`.
+
 **Best for**:
 - Atomic job scheduling + business logic ("cancel order and schedule refund" in one DB transaction)
 - Teams already using Postgres — no new infrastructure.
