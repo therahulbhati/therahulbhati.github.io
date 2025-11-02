@@ -102,7 +102,7 @@ FOR UPDATE SKIP LOCKED;
 Multiple workers poll concurrently without lock contention. Each grabs a batch, skips locked rows.
 
 **Tradeoffs**:
-- Polling interval creates latency floor (5s poll = up to 5s jitter).
+- Polling interval creates latency floor (5s poll = up to 5s jitter). *Use `LISTEN/NOTIFY` to wake workers immediately on job insert.* ([credit: @alexpovel](https://github.com/alexpovel))
 - Index pressure on high churn.
 - Not for sub-second precision.
 
