@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Memorization vs generalization</title>
+  <style>
+    :root{--bg:#faf9f5;--surface:#fff;--surface-2:#f1efe8;--text:#2c2c2a;--muted:#6b6a64;--hint:#8f8e87;--border:#e3e1d8;--accent:#185fa5;--success:#0f6e56;--c0:#c96b63;--c1:#5b8db8;--train:#185fa5;--test:#c96b63;--gap:#9b7fb8;}
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      line-height:1.55;padding:20px 16px 24px;}
+    .wrap{max-width:1000px;margin:0 auto;}
+    h2{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em;}
+    p.lede{color:var(--muted);margin:0 0 18px;font-size:14px;max-width:660px;}
+    .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+    .knobs{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;}
+    .knob{display:flex;flex-direction:column;gap:3px;}
+    .knob label{font-size:10px;color:var(--hint);text-transform:uppercase;letter-spacing:.04em;}
+    .knob input{width:88px;font:inherit;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);}
+    #pbtn{font:inherit;font-size:14px;font-weight:500;padding:9px 20px;border-radius:20px;
+      border:1px solid var(--border);background:var(--surface);color:var(--text);
+      cursor:pointer;white-space:nowrap;transition:background .15s,transform .05s;}
+    #pbtn:hover{background:var(--surface-2);}
+    #pbtn:active{transform:scale(.98);}
+    #pbtn.live{background:var(--accent);color:#fff;border-color:var(--accent);}
+    .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+    @media(max-width:640px){.g3{grid-template-columns:1fr;}}
+    .pnl{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;}
+    .ptitle{font-size:13px;font-weight:600;margin-bottom:2px;}
+    .psub{font-size:10px;color:var(--hint);margin-bottom:7px;}
+    canvas.bnd{width:100%;border-radius:8px;display:block;border:1px solid var(--border);}
+    .mets{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px;}
+    .met{background:var(--surface-2);border-radius:6px;padding:5px 7px;}
+    .met .k{font-size:9px;color:var(--hint);}
+    .met .v{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;}
+    .gap-bar-wrap{margin:0 0 10px;}
+    .gap-label{font-size:11px;color:var(--muted);margin-bottom:5px;}
+    .gap-bars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+    .gbar{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 10px;text-align:center;}
+    .gbar .gtitle{font-size:10px;color:var(--hint);margin-bottom:4px;}
+    .gbar .gval{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;}
+    .gbar .gval.bad{color:var(--c0);}
+    .gbar .gval.ok{color:#b8860b;}
+    .gbar .gval.good{color:var(--success);}
+    .gbar .gsub{font-size:9px;color:var(--hint);margin-top:2px;}
+    .insight{font-size:13px;color:var(--muted);padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;line-height:1.5;min-height:38px;}
+    .insight b{color:var(--text);}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Memorization vs generalization</h2>
+  <p class="lede">The same over-parameterized network trained on 20, 200, and 2 000 noisy points. With 25% label noise, a tiny dataset can be memorized; a large dataset forces the network to learn the rule.</p>
+
+  <div class="controls">
+    <button id="pbtn">▶ Run</button>
+    <div class="knobs">
+      <div class="knob"><label>Hidden size</label><input type="number" id="hidden" min="4" max="64" step="4" value="16"></div>
+      <div class="knob"><label>Epochs</label><input type="number" id="epochs" min="100" max="3000" step="100" value="800"></div>
+      <div class="knob"><label>Label noise</label><input type="number" id="noise" min="0" max="0.5" step="0.05" value="0.25"></div>
+      <div class="knob"><label>Learning rate</label><input type="number" id="lr" min="0.001" max="0.05" step="0.001" value="0.01"></div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="pnl">
+      <div class="ptitle">20 training points</div>
+      <div class="psub">more parameters than data</div>
+      <canvas class="bnd" id="c0" width="260" height="210"></canvas>
+      <div class="mets" id="m0"></div>
+    </div>
+    <div class="pnl">
+      <div class="ptitle">200 training points</div>
+      <div class="psub">capacity and data balanced</div>
+      <canvas class="bnd" id="c1" width="260" height="210"></canvas>
+      <div class="mets" id="m1"></div>
+    </div>
+    <div class="pnl">
+      <div class="ptitle">2 000 training points</div>
+      <div class="psub">data overwhelms the noise</div>
+      <canvas class="bnd" id="c2" width="260" height="210"></canvas>
+      <div class="mets" id="m2"></div>
+    </div>
+  </div>
+
+  <div class="gap-bar-wrap">
+    <div class="gap-label">Generalization gap (test loss − train loss) · smaller is better</div>
+    <div class="gap-bars">
+      <div class="gbar"><div class="gtitle">20 pts</div><div class="gval" id="g0">—</div><div class="gsub" id="gs0"></div></div>
+      <div class="gbar"><div class="gtitle">200 pts</div><div class="gval" id="g1">—</div><div class="gsub" id="gs1"></div></div>
+      <div class="gbar"><div class="gtitle">2 000 pts</div><div class="gval" id="g2">—</div><div class="gsub" id="gs2"></div></div>
+    </div>
+  </div>
+
+  <div class="insight" id="ins">Warming up…</div>
+</div>
+
+<script>
+  class RNG{constructor(s=42){this.s=s>>>0;}next(){this.s=(1664525*this.s+1013904223)>>>0;return this.s/4294967296;}norm(m=0,sd=1){let u=0,v=0;while(!u)u=this.next();while(!v)v=this.next();return m+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}}
+  class M{constructor(r,c,d){this.rows=r;this.cols=c;this.data=d||new Float32Array(r*c);}static z(r,c){return new M(r,c);}static rn(r,c,rng,m=0,s=1){const x=new M(r,c);for(let i=0;i<x.data.length;i++)x.data[i]=rng.norm(m,s);return x;}g(r,c){return this.data[r*this.cols+c];}s(r,c,v){this.data[r*this.cols+c]=v;}map(fn){const o=new M(this.rows,this.cols);for(let i=0;i<this.data.length;i++)o.data[i]=fn(this.data[i]);return o;}sc(s){return this.map(x=>x*s);}add(o){const out=new M(this.rows,this.cols);if(this.rows===o.rows&&this.cols===o.cols){for(let i=0;i<this.data.length;i++)out.data[i]=this.data[i]+o.data[i];}else if(o.rows===1&&this.cols===o.cols){for(let r=0;r<this.rows;r++)for(let c=0;c<this.cols;c++)out.data[r*this.cols+c]=this.data[r*this.cols+c]+o.data[c];}return out;}sub(o){const out=new M(this.rows,this.cols);for(let i=0;i<this.data.length;i++)out.data[i]=this.data[i]-o.data[i];return out;}mul(o){const out=new M(this.rows,this.cols);for(let i=0;i<this.data.length;i++)out.data[i]=this.data[i]*o.data[i];return out;}T(){const out=new M(this.cols,this.rows);for(let r=0;r<this.rows;r++)for(let c=0;c<this.cols;c++)out.data[c*this.rows+r]=this.data[r*this.cols+c];return out;}mm(o){const out=new M(this.rows,o.cols);for(let i=0;i<this.rows;i++)for(let j=0;j<o.cols;j++){let s=0;for(let k=0;k<this.cols;k++)s+=this.g(i,k)*o.g(k,j);out.s(i,j,s);}return out;}rs(){const out=new M(1,this.cols);for(let c=0;c<this.cols;c++){let s=0;for(let r=0;r<this.rows;r++)s+=this.g(r,c);out.data[c]=s;}return out;}}
+  const sig=z=>z.map(x=>1/(1+Math.exp(-Math.max(-50,Math.min(50,x)))));
+  const relu=z=>z.map(x=>Math.max(0,x));
+  class Lin{constructor(i,o,rng){const s=Math.sqrt(1/i);this.W=M.rn(o,i,rng,0,s);this.b=M.z(1,o);this.xC=null;this.mW=M.z(o,i);this.vW=M.z(o,i);this.mb=M.z(1,o);this.vb=M.z(1,o);this.t=0;}fwd(x){this.xC=x;return x.mm(this.W.T()).add(this.b);}bwd(dz){const N=dz.rows;return{dW:dz.T().mm(this.xC).sc(1/N),db:dz.rs().sc(1/N),dx:dz.mm(this.W)};}}
+  class RL{constructor(){this.xC=null;}fwd(x){this.xC=x;return relu(x);}bwd(dz){return dz.mul(this.xC.map(x=>x>0?1:0));}}
+  const B1=.9,B2=.999,EP=1e-8;
+  function adam(l,dW,db,lr,wd){l.t++;const c1=1-B1**l.t,c2=1-B2**l.t;for(let i=0;i<l.W.data.length;i++){const g=dW.data[i]+wd*l.W.data[i];l.mW.data[i]=B1*l.mW.data[i]+(1-B1)*g;l.vW.data[i]=B2*l.vW.data[i]+(1-B2)*g*g;l.W.data[i]-=lr*(l.mW.data[i]/c1)/(Math.sqrt(l.vW.data[i]/c2)+EP);}for(let i=0;i<l.b.data.length;i++){const g=db.data[i];l.mb.data[i]=B1*l.mb.data[i]+(1-B1)*g;l.vb.data[i]=B2*l.vb.data[i]+(1-B2)*g*g;l.b.data[i]-=lr*(l.mb.data[i]/c1)/(Math.sqrt(l.vb.data[i]/c2)+EP);}}
+  function build(h,rng){return[new Lin(2,h,rng),new RL(),new Lin(h,h,rng),new RL(),new Lin(h,1,rng)];}
+  function fwdAll(ls,x){let o=x;for(const l of ls)o=l.fwd(o);return o;}
+  function pr(ls,X){return sig(fwdAll(ls,X));}
+  function bce(ls,X,y){const p=pr(ls,X).data,N=X.rows;let loss=0;for(let i=0;i<N;i++){const pv=Math.min(Math.max(p[i],1e-12),1-1e-12),yi=y.data[i];loss-=yi*Math.log(pv)+(1-yi)*Math.log(1-pv);}return loss/N;}
+  function acc(ls,X,y){const p=pr(ls,X).data;let c=0;for(let i=0;i<X.rows;i++)if((p[i]>=.5?1:0)===Math.round(y.data[i]))c++;return c/X.rows;}
+  function step(ls,X,y,lr,wd){let o=X;for(const l of ls)o=l.fwd(o);let dz=sig(o).sub(y);const gs=[];for(let i=ls.length-1;i>=0;i--){const l=ls[i];if(l instanceof Lin){const{dx,dW,db}=l.bwd(dz);gs.push({l,dW,db});dz=dx;}else dz=l.bwd(dz);}for(const{l,dW,db}of gs)adam(l,dW,db,lr,wd);}
+
+  function makeData(n,noise,seed){const rng=new RNG(seed),X=M.z(n,2),y=M.z(n,1);for(let i=0;i<n;i++){const x0=rng.norm(0,1),x1=rng.norm(0,1),score=1.5*x0+1.0*x1-.5;let lbl=score>0?1:0;if(rng.next()<noise)lbl=1-lbl;X.s(i,0,x0);X.s(i,1,x1);y.data[i]=lbl;}return{X,y};}
+
+  let GB=null;
+  const GRID=80;
+  function getBounds(sets){let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;for(const{X}of sets)for(let i=0;i<X.rows;i++){x0=Math.min(x0,X.g(i,0));x1=Math.max(x1,X.g(i,0));y0=Math.min(y0,X.g(i,1));y1=Math.max(y1,X.g(i,1));}const pad=.8;return{x0:x0-pad,x1:x1+pad,y0:y0-pad,y1:y1+pad};}
+  function tp(x,y,b,sz){return{x:(x-b.x0)/(b.x1-b.x0)*sz,y:sz-(y-b.y0)/(b.y1-b.y0)*sz};}
+  function drawBnd(id,ls,train,test){
+    const cv=document.getElementById(id),ctx=cv.getContext('2d'),sz=cv.width,H=cv.height,b=GB;
+    const grid=M.z(GRID*GRID,2);for(let gy=0;gy<GRID;gy++)for(let gx=0;gx<GRID;gx++){const idx=gy*GRID+gx;grid.s(idx,0,b.x0+(gx+.5)/GRID*(b.x1-b.x0));grid.s(idx,1,b.y0+(1-(gy+.5)/GRID)*(b.y1-b.y0));}
+    const ps=pr(ls,grid).data,img=ctx.createImageData(GRID,GRID);
+    const c0=[201,107,99],c1=[91,141,184];
+    for(let i=0;i<ps.length;i++){img.data[i*4]=Math.round(c0[0]+ps[i]*(c1[0]-c0[0]));img.data[i*4+1]=Math.round(c0[1]+ps[i]*(c1[1]-c0[1]));img.data[i*4+2]=Math.round(c0[2]+ps[i]*(c1[2]-c0[2]));img.data[i*4+3]=255;}
+    ctx.imageSmoothingEnabled=true;ctx.clearRect(0,0,sz,H);const tmp=document.createElement('canvas');tmp.width=GRID;tmp.height=GRID;tmp.getContext('2d').putImageData(img,0,0);ctx.drawImage(tmp,0,0,sz,H);
+    ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(40,40,40,.5)';ctx.lineWidth=1.8;ctx.beginPath();let st=false;for(let gx=0;gx<=GRID;gx++){const x=b.x0+gx/GRID*(b.x1-b.x0),y=.5-1.5*x;if(y<b.y0||y>b.y1)continue;const p=tp(x,y,b,sz);if(!st){ctx.moveTo(p.x,p.y);st=true;}else ctx.lineTo(p.x,p.y);}ctx.stroke();ctx.setLineDash([]);
+    for(let i=0;i<train.X.rows;i++){const p=tp(train.X.g(i,0),train.X.g(i,1),b,sz),lbl=Math.round(train.y.data[i]);ctx.beginPath();ctx.arc(p.x,p.y,3,0,2*Math.PI);ctx.fillStyle=lbl?'rgba(91,141,184,.9)':'rgba(201,107,99,.9)';ctx.fill();ctx.lineWidth=.7;ctx.strokeStyle='rgba(255,255,255,.7)';ctx.stroke();}
+    for(let i=0;i<Math.min(test.X.rows,300);i++){const p=tp(test.X.g(i,0),test.X.g(i,1),b,sz),lbl=Math.round(test.y.data[i]);ctx.beginPath();ctx.arc(p.x,p.y,1.5,0,2*Math.PI);ctx.fillStyle=lbl?'rgba(91,141,184,.25)':'rgba(201,107,99,.25)';ctx.fill();}
+  }
+  function setMets(idx,tl,tel,ta,tea){
+    document.getElementById('m'+idx).innerHTML=`<div class="met"><div class="k">train acc</div><div class="v">${(ta*100).toFixed(0)}%</div></div><div class="met"><div class="k">test acc</div><div class="v">${(tea*100).toFixed(0)}%</div></div><div class="met"><div class="k">train loss</div><div class="v">${tl.toFixed(3)}</div></div><div class="met"><div class="k">test loss</div><div class="v">${tel.toFixed(3)}</div></div>`;
+    const gapV=tel-tl,cls=gapV>.4?'bad':gapV>.15?'ok':'good';
+    document.getElementById('g'+idx).textContent=(gapV>0?'+':'')+gapV.toFixed(3);
+    document.getElementById('g'+idx).className='gval '+cls;
+    document.getElementById('gs'+idx).textContent=(gapV*100).toFixed(0)+'% gap';
+  }
+
+  function postH(){window.parent.postMessage({type:'resize',h:document.body.scrollHeight+4},'*');}
+  const sl=t=>new Promise(r=>setTimeout(r,t));
+  let paused=false,abort=false,running=false,runGen=0;
+  const SIZES=[20,200,2000],TEST_N=2000;
+
+  async function run(){
+    const myGen=++runGen;abort=true;await sl(10);
+    if(myGen!==runGen)return;
+    abort=false;paused=false;running=true;
+
+    const hidden=Math.max(4,parseInt(document.getElementById('hidden').value,10)||16);
+    const epochs=Math.max(100,parseInt(document.getElementById('epochs').value,10)||800);
+    const noise=parseFloat(document.getElementById('noise').value)||.25;
+    const lr=parseFloat(document.getElementById('lr').value)||.01;
+
+    const pbtn=document.getElementById('pbtn');
+    pbtn.textContent='⏸ Pause';pbtn.className='live';
+    document.getElementById('ins').textContent='Training 3 models simultaneously…';
+    ['m0','m1','m2'].forEach(id=>document.getElementById(id).innerHTML='');
+    ['g0','g1','g2'].forEach(id=>{document.getElementById(id).textContent='—';document.getElementById(id).className='gval';});
+    ['gs0','gs1','gs2'].forEach(id=>document.getElementById(id).textContent='');
+
+    const seed=7+runGen,testData=makeData(TEST_N,noise,seed),fullTrain=makeData(Math.max(...SIZES),noise,seed+1000);
+    GB=getBounds([fullTrain,testData]);
+
+    const results=[];
+    for(let idx=0;idx<SIZES.length;idx++){
+      const n=SIZES[idx],Xn=new M(n,2,fullTrain.X.data.slice(0,n*2)),yn=new M(n,1,fullTrain.y.data.slice(0,n));
+      const ls=build(hidden,new RNG(seed+idx+1));
+      const chunk=Math.max(20,Math.floor(epochs/20));
+      for(let e=0;e<epochs;e++){
+        if(abort||myGen!==runGen){running=false;return;}
+        while(paused){await sl(50);if(abort||myGen!==runGen){running=false;return;}}
+        step(ls,Xn,yn,lr,5e-4);
+        if((e+1)%chunk===0||e===epochs-1){drawBnd('c'+idx,ls,{X:Xn,y:yn},testData);const tl=bce(ls,Xn,yn),tel=bce(ls,testData.X,testData.y),ta=acc(ls,Xn,yn),tea=acc(ls,testData.X,testData.y);setMets(idx,tl,tel,ta,tea);postH();await sl(0);}
+      }
+      const tl=bce(ls,Xn,yn),tel=bce(ls,testData.X,testData.y),ta=acc(ls,Xn,yn),tea=acc(ls,testData.X,testData.y);
+      setMets(idx,tl,tel,ta,tea);results.push({n,tl,tel,gap:tel-tl,ta,tea});
+    }
+
+    const g0=results[0].gap,g2=results[2].gap;
+    const pctRedux=((1-g2/Math.max(g0,.001))*100).toFixed(0);
+    document.getElementById('ins').innerHTML=`<b>Gap shrank ${pctRedux}%</b> from 20 to 2 000 points. With 20 points the network memorizes noisy labels (train ≫ test). With 2 000 points data overwhelms the noise and the model learns the true rule.`;
+    running=false;pbtn.textContent='↻ Rerun';pbtn.className='';postH();
+  }
+
+  document.getElementById('pbtn').addEventListener('click',()=>{
+    if(!running){run();return;}
+    paused=!paused;document.getElementById('pbtn').textContent=paused?'▶ Resume':'⏸ Pause';
+  });
+  window.addEventListener('load',()=>{setTimeout(postH,350);});
+  window.addEventListener('resize',postH);
+</script>
+</body>
+</html>

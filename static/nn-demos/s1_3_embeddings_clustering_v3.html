@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Embeddings learn similarity</title>
+  <style>
+    :root{--bg:#faf9f5;--surface:#fff;--surface-2:#f1efe8;--text:#2c2c2a;--muted:#6b6a64;--hint:#8f8e87;--border:#e3e1d8;--accent:#185fa5;--success:#0f6e56;
+      --animal:#d4726a;--fruit:#5ba67a;--verb:#5b8db8;--grammar:#9b7fb8;}
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      line-height:1.55;padding:20px 16px 24px;}
+    .wrap{max-width:980px;margin:0 auto;}
+    h2{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em;}
+    p.lede{color:var(--muted);margin:0 0 18px;font-size:14px;max-width:640px;}
+    .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+    .knobs{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;}
+    .knob{display:flex;flex-direction:column;gap:3px;}
+    .knob label{font-size:10px;color:var(--hint);text-transform:uppercase;letter-spacing:.04em;}
+    .knob input{width:88px;font:inherit;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);}
+    #pbtn{font:inherit;font-size:14px;font-weight:500;padding:9px 20px;border-radius:20px;
+      border:1px solid var(--border);background:var(--surface);color:var(--text);
+      cursor:pointer;white-space:nowrap;transition:background .15s,transform .05s;}
+    #pbtn:hover{background:var(--surface-2);}
+    #pbtn:active{transform:scale(.98);}
+    #pbtn.live{background:var(--accent);color:#fff;border-color:var(--accent);}
+    .adv-note{font-size:11px;color:var(--hint);margin-bottom:14px;line-height:1.4;}
+    .layout{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-bottom:12px;}
+    @media(max-width:640px){.layout{grid-template-columns:1fr;}}
+    .pnl{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+    .sec{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+    canvas#plot{width:100%;border-radius:9px;display:block;cursor:crosshair;}
+    .nn-badge{font-size:12px;color:var(--muted);margin-top:8px;min-height:18px;}
+    .nn-badge strong{color:var(--text);}
+    .empty{display:flex;align-items:center;justify-content:center;min-height:220px;color:var(--hint);font-size:13px;text-align:center;}
+    .insp-head{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;}
+    .insp-word{font-size:28px;font-weight:700;letter-spacing:-.02em;}
+    .insp-cat{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:9px;color:#fff;}
+    .emb-pill{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:7px 9px;margin:9px 0 14px;overflow-wrap:break-word;line-height:1.4;}
+    .bar-list{display:flex;flex-direction:column;gap:6px;}
+    .bar-row{display:flex;align-items:center;gap:8px;font-size:11px;}
+    .bar-row .w{width:48px;text-align:right;font-weight:500;}
+    .bar-track{flex:1;height:15px;background:var(--surface-2);border-radius:8px;overflow:hidden;}
+    .bar-fill{height:100%;border-radius:8px;transition:width .3s ease;min-width:2px;}
+    .bar-row .c{width:52px;color:var(--hint);font-size:10px;}
+    .proof{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+    .proof-nav{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .navbtn{font:inherit;width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface);cursor:pointer;}
+    .navbtn:hover:not(:disabled){background:var(--surface-2);}
+    .navbtn:disabled{opacity:.4;cursor:not-allowed;}
+    .navlbl{font-size:13px;font-weight:600;}
+    .proof-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    @media(max-width:480px){.proof-grid{grid-template-columns:1fr;}}
+    .pwt{font-size:12px;font-weight:600;margin-bottom:6px;}
+    .proof-caption{font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.5;}
+    .insight{font-size:13px;color:var(--muted);padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;line-height:1.5;min-height:38px;}
+    .insight b{color:var(--text);}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Embeddings learn similarity from next-token prediction</h2>
+  <p class="lede">A tiny model predicts the next word in a made-up grammar. No one tells it "cat and dog are similar", yet their embeddings cluster together.</p>
+
+  <div class="controls">
+    <button id="pbtn">▶ Run</button>
+    <div class="knobs">
+      <div class="knob"><label>Embed dim</label><input type="number" id="dimD" min="4" max="64" step="4" value="16"></div>
+      <div class="knob"><label>Epochs</label><input type="number" id="epochs" min="50" max="5000" step="50" value="300"></div>
+      <div class="knob"><label>Sentences</label><input type="number" id="sentences" min="200" max="20000" step="200" value="1000"></div>
+      <div class="knob"><label>LR</label><input type="number" id="lr" min="0.001" max="0.1" step="0.001" value="0.02"></div>
+    </div>
+  </div>
+  <div class="adv-note">Loss: <span id="advLoss">—</span> · Accuracy: <span id="advAcc">—</span></div>
+
+  <div class="layout">
+    <div class="pnl">
+      <div class="sec">Word map · click a word to inspect it</div>
+      <canvas id="plot" width="480" height="400"></canvas>
+      <div class="nn-badge" id="nnbadge"></div>
+    </div>
+    <div class="pnl">
+      <div class="sec">Embedding fingerprint</div>
+      <div id="empty" class="empty">Click a word on the map.</div>
+      <div id="icontent" style="display:none">
+        <div class="insp-head">
+          <div class="insp-word" id="iword">word</div>
+          <div class="insp-cat" id="icat">cat</div>
+        </div>
+        <div id="iemb" style="margin:9px 0 14px;"></div>
+        <div class="sec">Closest words</div>
+        <div class="bar-list" id="ibars"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="proof">
+    <div class="sec">Why they cluster — shared next-token distributions</div>
+    <div class="proof-nav">
+      <button class="navbtn" id="prev" disabled>←</button>
+      <span class="navlbl" id="plbl">cat ↔ dog</span>
+      <button class="navbtn" id="next" disabled>→</button>
+    </div>
+    <div class="proof-grid">
+      <div><div class="pwt" id="waT">cat</div><div class="bar-list" id="waBars"></div></div>
+      <div><div class="pwt" id="wbT">dog</div><div class="bar-list" id="wbBars"></div></div>
+    </div>
+    <p class="proof-caption">Tokens that predict the same next tokens get pulled to the same place in vector space.</p>
+  </div>
+
+  <div class="insight" id="ins">Warming up…</div>
+</div>
+
+<script>
+  const CATS={animal:{words:['cat','dog','cow'],color:'#d4726a',dark:'#b85c54'},fruit:{words:['apple','mango'],color:'#5ba67a',dark:'#458a62'},verb:{words:['eat','chase','see'],color:'#5b8db8',dark:'#43749d'},grammar:{words:['the','a','s','.'],color:'#9b7fb8',dark:'#7f659c'}};
+  const CORDER=['animal','fruit','verb','grammar'];
+  let w2i={},i2w=[],wcat=[],vsz=0;
+  function buildVocab(){w2i={};i2w=[];wcat=[];for(const cat of CORDER)for(const w of CATS[cat].words){w2i[w]=i2w.length;i2w.push(w);wcat.push(cat);}vsz=i2w.length;}
+  buildVocab();
+  const TMPLS=[['the','{a}','{v}','s','the','{f}','.'],['a','{a}','{v}','s','a','{f}','.'],['the','{a}','{v}','s','a','{f}','.']];
+  class RNG{constructor(s=42){this.s=s>>>0;}next(){this.s=(1664525*this.s+1013904223)>>>0;return this.s/4294967296;}ch(a){return a[Math.floor(this.next()*a.length)];}}
+  function genCorpus(n,seed){const rng=new RNG(seed),out=[];for(let i=0;i<n;i++){const t=rng.ch(TMPLS);out.push(t.map(x=>x.replace('{a}',rng.ch(CATS.animal.words)).replace('{f}',rng.ch(CATS.fruit.words)).replace('{v}',rng.ch(CATS.verb.words))));}return out;}
+  function buildDataset(corpus){const flat=[];for(const s of corpus)flat.push(...s);const N=flat.length-1,d=new Int32Array(N*2);for(let i=0;i<N;i++){d[i*2]=w2i[flat[i]];d[i*2+1]=w2i[flat[i+1]];}return d;}
+
+  function initModel(dim,seed){const rng=new RNG(seed),E=new Float32Array(vsz*dim),U=new Float32Array(vsz*dim);for(let i=0;i<E.length;i++)E[i]=rng.next();const std=Math.sqrt(1/dim);for(let i=0;i<U.length;i++)U[i]=(rng.next()-.5)*2*std;return{dim,E,U,mE:new Float32Array(E.length),vE:new Float32Array(E.length),mU:new Float32Array(U.length),vU:new Float32Array(U.length),t:0};}
+  function smaxIP(lg){let mx=-Infinity;for(let i=0;i<lg.length;i++)if(lg[i]>mx)mx=lg[i];let s=0;for(let i=0;i<lg.length;i++){lg[i]=Math.exp(lg[i]-mx);s+=lg[i];}for(let i=0;i<lg.length;i++)lg[i]/=s;}
+  function trainEpoch(m,data,lr){const{dim,E,U}=m,N=data.length/2,gE=new Float32Array(E.length),gU=new Float32Array(U.length),lg=new Float32Array(vsz),gr=new Float32Array(vsz);
+    for(let p=0;p<N;p++){const x=data[p*2],y=data[p*2+1],xO=x*dim;for(let i=0;i<vsz;i++){let d=0;const iO=i*dim;for(let dd=0;dd<dim;dd++)d+=E[xO+dd]*U[iO+dd];lg[i]=d;}smaxIP(lg);for(let i=0;i<vsz;i++)gr[i]=lg[i]-(i===y?1:0);for(let i=0;i<vsz;i++){const gi=gr[i],iO=i*dim;for(let dd=0;dd<dim;dd++){gE[xO+dd]+=gi*U[iO+dd];gU[iO+dd]+=gi*E[xO+dd];}}}
+    for(let i=0;i<gE.length;i++)gE[i]/=N;for(let i=0;i<gU.length;i++)gU[i]/=N;
+    m.t++;const t=m.t,b1=.9,b2=.999,ep=1e-8,c1=1-b1**t,c2=1-b2**t;
+    function adam(p,g,mv,vv){for(let i=0;i<p.length;i++){const gi=g[i];mv[i]=b1*mv[i]+(1-b1)*gi;vv[i]=b2*vv[i]+(1-b2)*gi*gi;p[i]-=lr*(mv[i]/c1)/(Math.sqrt(vv[i]/c2)+ep);}}
+    adam(E,gE,m.mE,m.vE);adam(U,gU,m.mU,m.vU);}
+  function evaluate(m,data){const{dim,E,U}=m,N=data.length/2,lg=new Float32Array(vsz);let loss=0,c=0;for(let p=0;p<N;p++){const x=data[p*2],y=data[p*2+1],xO=x*dim;let best=0,bsc=-Infinity;for(let i=0;i<vsz;i++){let d=0;const iO=i*dim;for(let dd=0;dd<dim;dd++)d+=E[xO+dd]*U[iO+dd];lg[i]=d;if(d>bsc){bsc=d;best=i;}}smaxIP(lg);if(best===y)c++;loss-=Math.log(Math.max(lg[y],1e-12));}return{loss:loss/N,acc:c/N};}
+  function predProbs(m,x){const{dim,E,U}=m,lg=new Float32Array(vsz),xO=x*dim;for(let i=0;i<vsz;i++){let d=0;const iO=i*dim;for(let dd=0;dd<dim;dd++)d+=E[xO+dd]*U[iO+dd];lg[i]=d;}smaxIP(lg);return lg;}
+
+  function dot(a,b){let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s;}
+  function normV(v){let s=0;for(const x of v)s+=x*x;s=Math.sqrt(s);if(s<1e-12)return;for(let i=0;i<v.length;i++)v[i]/=s;}
+  function pca2d(E,dim){const V=vsz,mn=new Float32Array(dim);for(let d=0;d<dim;d++){let s=0;for(let v=0;v<V;v++)s+=E[v*dim+d];mn[d]=s/V;}const X=new Float32Array(V*dim);for(let v=0;v<V;v++)for(let d=0;d<dim;d++)X[v*dim+d]=E[v*dim+d]-mn[d];
+    const C=new Float32Array(dim*dim);for(let i=0;i<dim;i++)for(let j=0;j<dim;j++){let s=0;for(let v=0;v<V;v++)s+=X[v*dim+i]*X[v*dim+j];C[i*dim+j]=s/V;}
+    const rng=new RNG(7),eig=[];
+    for(let k=0;k<2;k++){let vec=new Float32Array(dim);for(let d=0;d<dim;d++)vec[d]=rng.next()-.5;normV(vec);for(let it=0;it<120;it++){const nv=new Float32Array(dim);for(let i=0;i<dim;i++){let s=0;for(let j=0;j<dim;j++)s+=C[i*dim+j]*vec[j];nv[i]=s;}for(const pv of eig){const p=dot(nv,pv);for(let d=0;d<dim;d++)nv[d]-=p*pv[d];}normV(nv);vec=nv;}eig.push(vec);}
+    const xy=new Float32Array(V*2);for(let v=0;v<V;v++){let s0=0,s1=0;for(let d=0;d<dim;d++){s0+=X[v*dim+d]*eig[0][d];s1+=X[v*dim+d]*eig[1][d];}xy[v*2]=s0;xy[v*2+1]=s1;}return xy;}
+  function computeNN(m){const{dim,E}=m,V=vsz,dists=new Float32Array(V*V);let mx=0;for(let i=0;i<V;i++)for(let j=0;j<V;j++){if(i===j){dists[i*V+j]=Infinity;continue;}let s=0;for(let d=0;d<dim;d++){const diff=E[i*dim+d]-E[j*dim+d];s+=diff*diff;}const dd=Math.sqrt(s);dists[i*V+j]=dd;if(dd>mx)mx=dd;}
+    const rows=[];let hits=0,tot=0;for(let i=0;i<V;i++){const ord=[];for(let j=0;j<V;j++)ord.push({j,d:dists[i*V+j]});ord.sort((a,b)=>a.d-b.d);const top3=ord.slice(0,3).map(o=>({word:i2w[o.j],cat:wcat[o.j],dist:o.d}));const cat=wcat[i];if(cat!=='grammar'){tot++;if(top3[0].cat===cat)hits++;}rows.push({idx:i,word:i2w[i],cat,top3});}
+    return{rows,hits,tot,maxDist:mx};}
+
+  const cv=document.getElementById('plot'),ctx=cv.getContext('2d');
+  let curXY=null,tgtXY=null,animating=false,needDraw=true,selIdx=-1,cachedNN=null,model=null,pairIdx=0;
+  const pairs=[['cat','dog'],['apple','mango'],['eat','see']];
+
+  function compBounds(xy){let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;for(let v=0;v<vsz;v++){x0=Math.min(x0,xy[v*2]);x1=Math.max(x1,xy[v*2]);y0=Math.min(y0,xy[v*2+1]);y1=Math.max(y1,xy[v*2+1]);}const rx=Math.max((x1-x0)*.12,.2),ry=Math.max((y1-y0)*.12,.2);return{x0:x0-rx,x1:x1+rx,y0:y0-ry,y1:y1+ry};}
+  function toCv(xy,v,b){const W=cv.width,H=cv.height;return{x:(xy[v*2]-b.x0)/(b.x1-b.x0)*W,y:H-(xy[v*2+1]-b.y0)/(b.y1-b.y0)*H};}
+  function draw(){if(!curXY)return;const b=compBounds(curXY),W=cv.width,H=cv.height;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+    if(selIdx>=0&&cachedNN){const sp=toCv(curXY,selIdx,b),sc=wcat[selIdx];for(const nf of cachedNN.rows[selIdx].top3){const j=w2i[nf.word],np=toCv(curXY,j,b);ctx.beginPath();ctx.moveTo(sp.x,sp.y);ctx.lineTo(np.x,np.y);ctx.strokeStyle=sc===nf.cat?CATS[sc].color+'66':'rgba(160,160,160,.3)';ctx.lineWidth=2;ctx.stroke();}}
+    for(let v=0;v<vsz;v++){const p=toCv(curXY,v,b),cat=wcat[v],c=CATS[cat].color;ctx.beginPath();ctx.arc(p.x,p.y,13,0,2*Math.PI);ctx.fillStyle=c;ctx.shadowColor='rgba(0,0,0,.1)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fill();ctx.shadowColor='transparent';const lbl=i2w[v]==='.'?'·':i2w[v];ctx.font='600 13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=CATS[cat].dark;ctx.fillText(lbl,p.x+17,p.y);}
+    if(selIdx>=0){const p=toCv(curXY,selIdx,b),cat=wcat[selIdx];ctx.beginPath();ctx.arc(p.x,p.y,18,0,2*Math.PI);ctx.strokeStyle=CATS[cat].dark;ctx.lineWidth=2.5;ctx.stroke();}}
+  function animate(){if(curXY&&tgtXY){let mv=false;for(let i=0;i<curXY.length;i++){const d=tgtXY[i]-curXY[i];if(Math.abs(d)>.0005){curXY[i]+=d*.12;mv=true;}else curXY[i]=tgtXY[i];}animating=mv;if(mv||needDraw){draw();needDraw=false;}}requestAnimationFrame(animate);}
+  function setTarget(){tgtXY=pca2d(model.E,model.dim);cachedNN=computeNN(model);animating=true;if(!curXY)curXY=new Float32Array(tgtXY);}
+
+  function makeBar(word,pct,color,right){const d=document.createElement('div');d.className='bar-row';d.innerHTML=`<div class="w">${word==='.'?'·':word}</div><div class="bar-track"><div class="bar-fill" style="width:0%;background:${color}"></div></div><div class="c">${right}</div>`;requestAnimationFrame(()=>d.querySelector('.bar-fill').style.width=pct+'%');return d;}
+  function updInspect(){const e=document.getElementById('empty'),ic=document.getElementById('icontent');if(selIdx<0||!model){e.style.display='flex';ic.style.display='none';return;}e.style.display='none';ic.style.display='block';const w=i2w[selIdx],cat=wcat[selIdx],c=CATS[cat];document.getElementById('iword').textContent=w==='.'?'·':w;const b=document.getElementById('icat');b.textContent=cat;b.style.background=c.color;const emb=[];for(let d=0;d<model.dim;d++)emb.push(model.E[selIdx*model.dim+d]);const mxa=Math.max(...emb.map(Math.abs),0.001);document.getElementById('iemb').innerHTML=emb.map((v,i)=>{const pct=(Math.abs(v)/mxa*46).toFixed(1);const bar=v>=0?`<div style="position:absolute;left:50%;top:0;height:100%;width:${pct}%;border-radius:0 3px 3px 0;background:#5b8db8;"></div>`:`<div style="position:absolute;right:50%;top:0;height:100%;width:${pct}%;border-radius:3px 0 0 3px;background:#c96b63;"></div>`;return`<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span style="font-size:10px;color:#8f8e87;font-family:monospace;width:16px;text-align:right;">${i+1}</span><div style="flex:1;height:7px;background:#f1efe8;border-radius:4px;position:relative;">${bar}</div><span style="font-size:10px;color:#8f8e87;font-family:monospace;width:38px;text-align:right;">${v>=0?'+':''}${v.toFixed(2)}</span></div>`;}).join('');const row=cachedNN.rows[selIdx],gmax=cachedNN.maxDist*1.05||1,cl=document.getElementById('ibars');cl.innerHTML='';for(const nf of row.top3){const pct=Math.max(4,(1-nf.dist/gmax)*100);cl.appendChild(makeBar(nf.word,pct,CATS[nf.cat].color,nf.dist.toFixed(2)));}}
+  function updProof(){if(!model){document.getElementById('waBars').innerHTML='';document.getElementById('wbBars').innerHTML='';return;}const[a,b]=pairs[pairIdx];document.getElementById('plbl').textContent=a+' ↔ '+b;document.getElementById('waT').textContent=a==='.'?'·':a;document.getElementById('wbT').textContent=b==='.'?'·':b;[['waBars',a],['wbBars',b]].forEach(([id,word])=>{const idx=w2i[word],probs=predProbs(model,idx),ord=[];for(let i=0;i<vsz;i++)ord.push({i,p:probs[i]});ord.sort((a,b)=>b.p-a.p);const el=document.getElementById(id);el.innerHTML='';for(const{i,p}of ord)el.appendChild(makeBar(i2w[i],p*100,CATS[wcat[i]].color,(p*100).toFixed(1)+'%'));});}
+
+  cv.addEventListener('click',e=>{if(!curXY)return;const r=cv.getBoundingClientRect(),mx=(e.clientX-r.left)*(cv.width/r.width),my=(e.clientY-r.top)*(cv.height/r.height),b=compBounds(curXY);let best=-1,bd=Infinity;for(let v=0;v<vsz;v++){const p=toCv(curXY,v,b),d=(p.x-mx)**2+(p.y-my)**2;if(d<bd){bd=d;best=v;}}if(best>=0&&bd<900){selIdx=best;updInspect();updProof();needDraw=true;}});
+  document.getElementById('prev').addEventListener('click',()=>{pairIdx=(pairIdx-1+pairs.length)%pairs.length;updProof();});
+  document.getElementById('next').addEventListener('click',()=>{pairIdx=(pairIdx+1)%pairs.length;updProof();});
+
+  function postH(){window.parent.postMessage({type:'resize',h:document.body.scrollHeight+4},'*');}
+  const sl=t=>new Promise(r=>setTimeout(r,t));
+  let paused=false,abort=false,running=false,runGen=0;
+
+  async function run(){
+    const myGen=++runGen;abort=true;await sl(10);
+    if(myGen!==runGen)return;
+    abort=false;paused=false;running=true;
+
+    const dim=Math.max(4,parseInt(document.getElementById('dimD').value,10)||16);
+    const maxEpochs=Math.max(50,parseInt(document.getElementById('epochs').value,10)||300);
+    const nSentences=Math.max(200,parseInt(document.getElementById('sentences').value,10)||1000);
+    const lr=parseFloat(document.getElementById('lr').value)||.02;
+
+    const pbtn=document.getElementById('pbtn');
+    pbtn.textContent='⏸ Pause';pbtn.className='live';
+    document.getElementById('ins').textContent='Training…';
+    document.getElementById('nnbadge').innerHTML='';
+    document.getElementById('advLoss').textContent='—';
+    document.getElementById('advAcc').textContent='—';
+    selIdx=-1;updInspect();
+    ['prev','next'].forEach(id=>document.getElementById(id).disabled=true);
+
+    const corpus=genCorpus(nSentences,42+runGen),data=buildDataset(corpus);
+    model=initModel(dim,42);
+    setTarget();if(!curXY)curXY=new Float32Array(tgtXY);needDraw=true;
+
+    for(let ep=1;ep<=maxEpochs;ep++){
+      if(abort||myGen!==runGen){running=false;return;}
+      while(paused){await sl(50);if(abort||myGen!==runGen){running=false;return;}}
+      trainEpoch(model,data,lr);
+      if(ep%20===0||ep===maxEpochs){
+        setTarget();const ev=evaluate(model,data);
+        document.getElementById('advLoss').textContent=ev.loss.toFixed(4);
+        document.getElementById('advAcc').textContent=(ev.acc*100).toFixed(1)+'%';
+        const cnn=cachedNN;
+        document.getElementById('nnbadge').innerHTML=`Same-category nearest neighbor: <strong>${cnn.hits} of ${cnn.tot}</strong>`;
+        document.getElementById('ins').textContent=`Epoch ${ep}/${maxEpochs} · loss ${ev.loss.toFixed(3)} · accuracy ${(ev.acc*100).toFixed(0)}%`;
+        if(selIdx>=0){updInspect();updProof();}
+        postH();await sl(0);
+      }
+    }
+
+    const cnn=cachedNN;
+    document.getElementById('ins').innerHTML=`<b>${cnn.hits}/${cnn.tot} words found their same-category nearest neighbor.</b> The model learned this from next-token statistics alone. No synonym labels provided.`;
+    document.getElementById('nnbadge').innerHTML=`Same-category nearest neighbor: <strong>${cnn.hits} of ${cnn.tot}</strong>${cnn.hits===cnn.tot?' ✓':''}`;
+    ['prev','next'].forEach(id=>document.getElementById(id).disabled=false);
+    updProof();running=false;pbtn.textContent='↻ Retrain';pbtn.className='';postH();
+  }
+
+  document.getElementById('pbtn').addEventListener('click',()=>{
+    if(!running){run();return;}
+    paused=!paused;document.getElementById('pbtn').textContent=paused?'▶ Resume':'⏸ Pause';
+  });
+  animate();
+  // show initial random scatter so canvas isn't blank on load
+  model=initModel(16,99);setTarget();curXY=new Float32Array(tgtXY);draw();model=null;
+  document.getElementById('ins').textContent='Random positions before training. Click Run to start.';
+
+  window.addEventListener('load',()=>{setTimeout(postH,550);});
+  window.addEventListener('resize',postH);
+</script>
+</body>
+</html>

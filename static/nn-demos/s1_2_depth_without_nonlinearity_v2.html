@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Depth without nonlinearity</title>
+  <style>
+    :root{--bg:#faf9f5;--surface:#fff;--surface-2:#f1efe8;--text:#2c2c2a;--muted:#6b6a64;--hint:#8f8e87;--border:#e3e1d8;--accent:#185fa5;--success:#0f6e56;}
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      line-height:1.55;padding:20px 16px 24px;}
+    .wrap{max-width:820px;margin:0 auto;}
+    h2{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em;}
+    p.lede{color:var(--muted);margin:0 0 18px;font-size:14px;}
+    .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+    .knobs{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;}
+    .knob{display:flex;flex-direction:column;gap:3px;}
+    .knob label{font-size:10px;color:var(--hint);text-transform:uppercase;letter-spacing:.04em;}
+    .knob-range{display:flex;align-items:center;gap:6px;}
+    .knob-range input[type=range]{accent-color:var(--accent);width:100px;cursor:pointer;}
+    .knob-range span{font-size:12px;font-weight:600;min-width:26px;}
+    .knob input[type=number]{width:88px;font:inherit;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);}
+    #pbtn{font:inherit;font-size:14px;font-weight:500;padding:9px 20px;border-radius:20px;
+      border:1px solid var(--border);background:var(--surface);color:var(--text);
+      cursor:pointer;white-space:nowrap;transition:background .15s,transform .05s;}
+    #pbtn:hover{background:var(--surface-2);}
+    #pbtn:active{transform:scale(.98);}
+    #pbtn.live{background:var(--accent);color:#fff;border-color:var(--accent);}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+    @media(max-width:580px){.grid{grid-template-columns:1fr;}}
+    .pnl{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;}
+    .ptitle{font-size:13px;font-weight:600;margin-bottom:2px;}
+    .psub{font-size:10px;color:var(--hint);margin-bottom:7px;}
+    canvas{width:100%;border-radius:8px;display:block;border:1px solid var(--border);}
+    .arow{display:flex;justify-content:space-between;align-items:baseline;margin-top:7px;}
+    .albl{font-size:11px;color:var(--hint);}
+    .aval{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;}
+    .proof{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px;}
+    .proof-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+    .proof-desc{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
+    .proof-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .pcard{background:var(--surface-2);border-radius:7px;padding:8px 10px;}
+    .pcard .k{font-size:10px;color:var(--hint);margin-bottom:2px;}
+    .pcard .v{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:600;}
+    .pcard .note{font-size:10px;color:var(--success);margin-top:2px;}
+    .insight{font-size:13px;color:var(--muted);padding:10px 14px;
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:10px;line-height:1.5;min-height:38px;}
+    .insight b{color:var(--text);}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Depth without nonlinearity is one matrix</h2>
+  <p class="lede">Three networks on the same rings. Linear depth adds nothing; ReLU depth does.</p>
+
+  <div class="controls">
+    <button id="pbtn">▶ Run</button>
+    <div class="knobs">
+      <div class="knob">
+        <label>Noise</label>
+        <div class="knob-range">
+          <input type="range" id="noise" min="0" max="0.4" step="0.01" value="0.15">
+          <span id="noiseOut">0.15</span>
+        </div>
+      </div>
+      <div class="knob"><label>Steps</label><input type="number" id="steps" min="50" max="10000" step="50" value="2000"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="pnl">
+      <div class="ptitle">1 linear layer</div>
+      <div class="psub">draws one straight line</div>
+      <canvas id="c0" width="220" height="200"></canvas>
+      <div class="arow"><span class="albl">accuracy</span><span class="aval" style="color:#c96b63" id="a0">—</span></div>
+    </div>
+    <div class="pnl">
+      <div class="ptitle">5 linear layers</div>
+      <div class="psub">still just a straight line</div>
+      <canvas id="c1" width="220" height="200"></canvas>
+      <div class="arow"><span class="albl">accuracy</span><span class="aval" style="color:#c96b63" id="a1">—</span></div>
+    </div>
+    <div class="pnl">
+      <div class="ptitle">5 layers + ReLU</div>
+      <div class="psub">a kink between each layer</div>
+      <canvas id="c2" width="220" height="200"></canvas>
+      <div class="arow"><span class="albl">accuracy</span><span class="aval" style="color:var(--success)" id="a2">—</span></div>
+    </div>
+  </div>
+
+  <div class="proof">
+    <div class="proof-title">Proof: W₅·W₄·W₃·W₂·W₁ = one 2→1 matrix</div>
+    <div class="proof-desc">Multiplying the five weight matrices gives a single affine map. Running every point through it reproduces the 5-layer model exactly, because it <em>is</em> the same function.</div>
+    <div class="proof-cards">
+      <div class="pcard"><div class="k">collapsed weights (w₁, w₂ · bias)</div><div class="v" id="cmap">—</div></div>
+      <div class="pcard"><div class="k">max |logit difference|</div><div class="v" id="mdiff" style="font-size:18px;">—</div><div class="note" id="dverdict"></div></div>
+    </div>
+  </div>
+
+  <div class="insight" id="ins">Warming up…</div>
+</div>
+
+<script>
+  class RNG{constructor(s=42){this.seed=s>>>0;}next(){this.seed=(1664525*this.seed+1013904223)>>>0;return this.seed/4294967296;}norm(m=0,s=1){let u=0,v=0;while(!u)u=this.next();while(!v)v=this.next();return m+s*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}}
+  class Mat{
+    constructor(r,c,d){this.rows=r;this.cols=c;this.data=d||new Float32Array(r*c);}
+    static z(r,c){return new Mat(r,c);}
+    static rn(r,c,rng,m=0,s=1){const x=new Mat(r,c);for(let i=0;i<x.data.length;i++)x.data[i]=rng.norm(m,s);return x;}
+    g(r,c){return this.data[r*this.cols+c];}s(r,c,v){this.data[r*this.cols+c]=v;}
+    map(fn){const o=new Mat(this.rows,this.cols);for(let i=0;i<this.data.length;i++)o.data[i]=fn(this.data[i]);return o;}
+    sc(s){return this.map(x=>x*s);}
+    add(o){const out=new Mat(this.rows,this.cols);if(this.rows===o.rows&&this.cols===o.cols){for(let i=0;i<this.data.length;i++)out.data[i]=this.data[i]+o.data[i];}else if(o.rows===1&&this.cols===o.cols){for(let r=0;r<this.rows;r++)for(let c=0;c<this.cols;c++)out.data[r*this.cols+c]=this.data[r*this.cols+c]+o.data[c];}return out;}
+    sub(o){const out=new Mat(this.rows,this.cols);for(let i=0;i<this.data.length;i++)out.data[i]=this.data[i]-o.data[i];return out;}
+    mul(o){const out=new Mat(this.rows,this.cols);for(let i=0;i<this.data.length;i++)out.data[i]=this.data[i]*o.data[i];return out;}
+    clone(){return new Mat(this.rows,this.cols,this.data.slice());}
+    T(){const out=new Mat(this.cols,this.rows);for(let r=0;r<this.rows;r++)for(let c=0;c<this.cols;c++)out.data[c*this.rows+r]=this.data[r*this.cols+c];return out;}
+    mm(o){const out=new Mat(this.rows,o.cols);for(let i=0;i<this.rows;i++)for(let j=0;j<o.cols;j++){let s=0;for(let k=0;k<this.cols;k++)s+=this.g(i,k)*o.g(k,j);out.s(i,j,s);}return out;}
+    rs(){const out=new Mat(1,this.cols);for(let c=0;c<this.cols;c++){let s=0;for(let r=0;r<this.rows;r++)s+=this.g(r,c);out.data[c]=s;}return out;}
+  }
+  const sig=z=>z.map(x=>1/(1+Math.exp(-Math.max(-50,Math.min(50,x)))));
+  const relu=z=>z.map(x=>Math.max(0,x));
+  class LinL{constructor(i,o,rng){const s=Math.sqrt(1/i);this.W=Mat.rn(o,i,rng,0,s);this.b=Mat.z(1,o);this.xC=null;this.mW=Mat.z(o,i);this.vW=Mat.z(o,i);this.mb=Mat.z(1,o);this.vb=Mat.z(1,o);this.t=0;}fwd(x){this.xC=x;return x.mm(this.W.T()).add(this.b);}bwd(dz){const N=dz.rows;return{dW:dz.T().mm(this.xC).sc(1/N),db:dz.rs().sc(1/N),dx:dz.mm(this.W)};}}
+  class ReLUL{constructor(){this.xC=null;}fwd(x){this.xC=x;return relu(x);}bwd(dz){return dz.mul(this.xC.map(x=>x>0?1:0));}}
+  const B1=.9,B2=.999,EP=1e-8;
+  function adam(l,dW,db,lr){l.t++;const c1=1-B1**l.t,c2=1-B2**l.t;for(let i=0;i<l.W.data.length;i++){const g=dW.data[i];l.mW.data[i]=B1*l.mW.data[i]+(1-B1)*g;l.vW.data[i]=B2*l.vW.data[i]+(1-B2)*g*g;l.W.data[i]-=lr*(l.mW.data[i]/c1)/(Math.sqrt(l.vW.data[i]/c2)+EP);}for(let i=0;i<l.b.data.length;i++){const g=db.data[i];l.mb.data[i]=B1*l.mb.data[i]+(1-B1)*g;l.vb.data[i]=B2*l.vb.data[i]+(1-B2)*g*g;l.b.data[i]-=lr*(l.mb.data[i]/c1)/(Math.sqrt(l.vb.data[i]/c2)+EP);}}
+  function fwdAll(ls,x){let o=x;for(const l of ls)o=l.fwd(o);return o;}
+  function pr(ls,X){return sig(fwdAll(ls,X));}
+  function acc(ls,X,y){const p=pr(ls,X).data;let c=0;for(let i=0;i<X.rows;i++)if((p[i]>=.5?1:0)===Math.round(y.data[i]))c++;return c/X.rows;}
+  function step(ls,X,y,lr){let o=X;for(const l of ls)o=l.fwd(o);let dz=sig(o).sub(y);const gs=[];for(let i=ls.length-1;i>=0;i--){const l=ls[i];if(l instanceof LinL){const{dx,dW,db}=l.bwd(dz);gs.push({l,dW,db});dz=dx;}else dz=l.bwd(dz);}for(const{l,dW,db}of gs)adam(l,dW,db,lr);}
+  function buildSingle(rng){return[new LinL(2,1,rng)];}
+  function buildDeep(rng){return[new LinL(2,8,rng),new LinL(8,8,rng),new LinL(8,8,rng),new LinL(8,8,rng),new LinL(8,1,rng)];}
+  function buildReLU(rng){return[new LinL(2,8,rng),new ReLUL(),new LinL(8,8,rng),new ReLUL(),new LinL(8,8,rng),new ReLUL(),new LinL(8,8,rng),new ReLUL(),new LinL(8,1,rng)];}
+
+  let gMin=0,gMax=0;
+  function makeRings(n,noise,seed){const rng=new RNG(seed),n0=n>>1,n1=n-n0,X=Mat.z(n,2),y=Mat.z(n,1);for(let i=0;i<n0;i++){const t=rng.next()*2*Math.PI,r=rng.norm(1,noise);X.s(i,0,r*Math.cos(t));X.s(i,1,r*Math.sin(t));}for(let i=0;i<n1;i++){const t=rng.next()*2*Math.PI,r=rng.norm(2,noise);X.s(n0+i,0,r*Math.cos(t));X.s(n0+i,1,r*Math.sin(t));y.data[n0+i]=1;}return{X,y};}
+  function updateBounds(X){let x0=Infinity,x1=-Infinity;for(let i=0;i<X.rows;i++){x0=Math.min(x0,X.g(i,0),X.g(i,1));x1=Math.max(x1,X.g(i,0),X.g(i,1));}gMin=x0-.5;gMax=x1+.5;}
+  function tp2(x,y,sz){const t=(x-gMin)/(gMax-gMin),s=(y-gMin)/(gMax-gMin);return{x:t*(sz-1),y:(sz-1)-s*(sz-1)};}
+  const GRID=80,hmap=document.createElement('canvas');hmap.width=GRID;hmap.height=GRID;const hctx=hmap.getContext('2d');
+  function drawPanel(cv,ls,X,y){
+    const sz=cv.width,ctx=cv.getContext('2d'),total=GRID*GRID,grid=Mat.z(total,2);
+    for(let py=0;py<GRID;py++)for(let px=0;px<GRID;px++){const idx=py*GRID+px;grid.s(idx,0,gMin+(px+.5)/GRID*(gMax-gMin));grid.s(idx,1,gMin+(1-(py+.5)/GRID)*(gMax-gMin));}
+    const ps=pr(ls,grid).data,img=hctx.createImageData(GRID,GRID);
+    for(let i=0;i<total;i++){const col=ps[i]>=.5?[203,224,245]:[248,214,200];img.data[i*4]=col[0];img.data[i*4+1]=col[1];img.data[i*4+2]=col[2];img.data[i*4+3]=255;}
+    hctx.putImageData(img,0,0);ctx.imageSmoothingEnabled=true;ctx.clearRect(0,0,sz,sz);ctx.drawImage(hmap,0,0,sz,sz);
+    ctx.beginPath();for(let py=0;py<GRID-1;py++)for(let px=0;px<GRID-1;px++){const a=ps[py*GRID+px]>.5?1:0,b=ps[py*GRID+px+1]>.5?1:0,c=ps[(py+1)*GRID+px]>.5?1:0,d=ps[(py+1)*GRID+px+1]>.5?1:0;if(a+b+c+d>0&&a+b+c+d<4)ctx.rect(px/GRID*sz,py/GRID*sz,sz/GRID,sz/GRID);}
+    ctx.fillStyle='rgba(0,0,0,.4)';ctx.fill();
+    ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(70,70,70,.5)';ctx.lineWidth=1.2;const ctr=tp2(0,0,sz),rr=tp2(1.5,0,sz).x-ctr.x;ctx.beginPath();ctx.arc(ctr.x,ctr.y,rr,0,2*Math.PI);ctx.stroke();ctx.setLineDash([]);
+    for(let i=0;i<X.rows;i++){const p=tp2(X.g(i,0),X.g(i,1),sz);ctx.beginPath();ctx.arc(p.x,p.y,2.5,0,2*Math.PI);ctx.fillStyle=Math.round(y.data[i])?'#185FA5':'#993C1D';ctx.fill();ctx.lineWidth=.7;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.stroke();}
+  }
+
+  function updateProof(deepLs,X){
+    const params=deepLs.filter(l=>l instanceof LinL).map(l=>({W:l.W,b:l.b}));
+    const last=params[params.length-1];let W=last.W.clone(),b=last.b.clone();
+    for(let i=params.length-2;i>=0;i--){const{W:Wi,b:bi}=params[i];b=b.add(bi.mm(W.T()));W=W.mm(Wi);}
+    const seq=fwdAll(deepLs,X).data,col=X.mm(W.T()).add(b).data;let mx=0;for(let i=0;i<seq.length;i++)mx=Math.max(mx,Math.abs(seq[i]-col[i]));
+    document.getElementById('cmap').textContent=`${W.data[0].toFixed(3)},  ${W.data[1].toFixed(3)}  ·  ${b.data[0].toFixed(3)}`;
+    document.getElementById('mdiff').textContent=mx.toExponential(2);
+    const v=document.getElementById('dverdict');v.textContent=mx<1e-3?'identical: same function':'computing…';v.style.color=mx<1e-3?'var(--success)':'var(--hint)';
+  }
+
+  function postH(){window.parent.postMessage({type:'resize',h:document.body.scrollHeight+4},'*');}
+  const sl=t=>new Promise(r=>setTimeout(r,t));
+  let paused=false,abort=false,running=false,runGen=0;
+
+  async function run(){
+    const myGen=++runGen;abort=true;await sl(10);
+    if(myGen!==runGen)return;
+    abort=false;paused=false;running=true;
+    const noise=parseFloat(document.getElementById('noise').value)||.15;
+    const steps=Math.max(50,parseInt(document.getElementById('steps').value,10)||2000);
+    const pbtn=document.getElementById('pbtn');
+    pbtn.textContent='⏸ Pause';pbtn.className='live';
+    document.getElementById('ins').textContent='Training three models simultaneously…';
+    ['a0','a1','a2'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('cmap').textContent='—';document.getElementById('mdiff').textContent='—';document.getElementById('dverdict').textContent='';
+
+    const{X,y}=makeRings(300,noise,13);updateBounds(X);
+    const ls0=buildSingle(new RNG(1)),ls1=buildDeep(new RNG(2)),ls2=buildReLU(new RNG(3));
+    const chunk=Math.max(30,Math.floor(steps/20));
+
+    async function trainOne(ls,lr,canvasId,accId){
+      for(let e=0;e<steps;e++){
+        if(abort||myGen!==runGen)return;
+        while(paused){await sl(50);if(abort||myGen!==runGen)return;}
+        step(ls,X,y,lr);
+        if((e+1)%chunk===0||e===steps-1){
+          drawPanel(document.getElementById(canvasId),ls,X,y);
+          document.getElementById(accId).textContent=(acc(ls,X,y)*100).toFixed(1)+'%';
+          postH();await sl(0);
+        }
+      }
+    }
+
+    await Promise.all([trainOne(ls0,.05,'c0','a0'),trainOne(ls1,.01,'c1','a1'),trainOne(ls2,.01,'c2','a2')]);
+    if(abort||myGen!==runGen)return;
+    const a0=acc(ls0,X,y),a1=acc(ls1,X,y),a2=acc(ls2,X,y);
+    updateProof(ls1,X);
+    const d01=(Math.abs(a0-a1)*100).toFixed(0);
+    document.getElementById('ins').innerHTML=`<b>1-layer and 5-layer linear: ${(a0*100).toFixed(0)}% vs ${(a1*100).toFixed(0)}%</b>, virtually identical (Δ${d01}%). The proof panel confirms the five matrices collapse to one. ReLU reaches ${(a2*100).toFixed(0)}%.`;
+    running=false;pbtn.textContent='↻ Rerun';pbtn.className='';postH();
+  }
+
+  document.getElementById('pbtn').addEventListener('click',()=>{
+    if(!running){run();return;}
+    paused=!paused;document.getElementById('pbtn').textContent=paused?'▶ Resume':'⏸ Pause';
+  });
+  const noiseIn=document.getElementById('noise'),noiseOut=document.getElementById('noiseOut');
+  noiseIn.addEventListener('input',()=>{noiseOut.textContent=parseFloat(noiseIn.value).toFixed(2);});
+
+  window.addEventListener('load',()=>{setTimeout(postH,350);});
+  window.addEventListener('resize',postH);
+</script>
+</body>
+</html>
