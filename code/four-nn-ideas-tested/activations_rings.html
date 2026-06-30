@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Why activations matter</title>
+  <style>
+    :root {
+      --bg:#faf9f5;--surface:#fff;--surface-2:#f1efe8;
+      --text:#2c2c2a;--muted:#6b6a64;--hint:#8f8e87;
+      --border:#e3e1d8;--accent:#185fa5;--success:#0f6e56;
+      --c0:#c96b63;--c1:#5b8db8;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+      line-height:1.55;padding:20px 16px 24px;}
+    .wrap{max-width:760px;margin:0 auto;}
+    h2{font-size:20px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em;}
+    p.lede{color:var(--muted);margin:0 0 18px;font-size:14px;}
+    .controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+    .knobs{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;}
+    .knob{display:flex;flex-direction:column;gap:3px;}
+    .knob label{font-size:10px;color:var(--hint);text-transform:uppercase;letter-spacing:.04em;}
+    .knob input{width:88px;font:inherit;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);}
+    #pbtn{font:inherit;font-size:14px;font-weight:500;padding:9px 20px;border-radius:20px;
+      border:1px solid var(--border);background:var(--surface);color:var(--text);
+      cursor:pointer;white-space:nowrap;transition:background .15s,transform .05s;}
+    #pbtn:hover{background:var(--surface-2);}
+    #pbtn:active{transform:scale(.98);}
+    #pbtn.live{background:var(--accent);color:#fff;border-color:var(--accent);}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+    @media(max-width:500px){.g2{grid-template-columns:1fr;}}
+    .pnl{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+    .ptitle{font-size:14px;font-weight:600;margin-bottom:2px;}
+    .psub{font-size:11px;color:var(--hint);margin-bottom:8px;}
+    canvas{width:100%;border-radius:9px;display:block;border:1px solid var(--border);}
+    .arow{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;}
+    .albl{font-size:11px;color:var(--hint);}
+    .aval{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;}
+    .insight{font-size:13px;color:var(--muted);padding:10px 14px;
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:10px;line-height:1.5;min-height:38px;}
+    .insight b{color:var(--text);}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Why activations matter</h2>
+  <p class="lede">Two networks on the same noisy rings. Only difference: one hidden layer of ReLU.</p>
+
+  <div class="controls">
+    <button id="pbtn">▶ Run</button>
+    <div class="knobs">
+      <div class="knob"><label>Hidden size</label><input type="number" id="hidden" min="4" max="64" step="2" value="16"></div>
+      <div class="knob"><label>Steps</label><input type="number" id="steps" min="100" max="5000" step="100" value="2000"></div>
+      <div class="knob"><label>Noise</label><input type="number" id="noise" min="0" max="0.5" step="0.05" value="0.15"></div>
+      <div class="knob"><label>Learning rate</label><input type="number" id="lr" min="0.001" max="0.05" step="0.001" value="0.01"></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="pnl">
+      <div class="ptitle">Linear only</div>
+      <div class="psub">can only draw a straight line</div>
+      <canvas id="c0" width="300" height="240"></canvas>
+      <div class="arow"><span class="albl">accuracy</span>
+        <span class="aval" style="color:var(--c0)" id="a0">—</span></div>
+    </div>
+    <div class="pnl">
+      <div class="ptitle">1 hidden layer + ReLU</div>
+      <div class="psub">can bend around the ring</div>
+      <canvas id="c1" width="300" height="240"></canvas>
+      <div class="arow"><span class="albl">accuracy</span>
+        <span class="aval" style="color:var(--success)" id="a1">—</span></div>
+    </div>
+  </div>
+
+  <div class="insight" id="ins">Warming up…</div>
+</div>
+
+<script>
+  class RNG {
+    constructor(s=42){this.s=s>>>0;}
+    next(){this.s=(1664525*this.s+1013904223)>>>0;return this.s/4294967296;}
+    norm(m=0,sd=1){let u=0,v=0;while(!u)u=this.next();while(!v)v=this.next();
+      return m+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+  }
+  class M {
+    constructor(r,c,d){this.r=r;this.c=c;this.d=d||new Float32Array(r*c);}
+    static z(r,c){return new M(r,c);}
+    static rn(r,c,rng,m=0,s=1){const x=new M(r,c);for(let i=0;i<x.d.length;i++)x.d[i]=rng.norm(m,s);return x;}
+    g(r,c){return this.d[r*this.c+c];}
+    s(r,c,v){this.d[r*this.c+c]=v;}
+    map(fn){const o=new M(this.r,this.c);for(let i=0;i<this.d.length;i++)o.d[i]=fn(this.d[i]);return o;}
+    sc(s){return this.map(x=>x*s);}
+    add(o){const out=new M(this.r,this.c);if(this.r===o.r&&this.c===o.c){for(let i=0;i<this.d.length;i++)out.d[i]=this.d[i]+o.d[i];}else if(o.r===1&&this.c===o.c){for(let r=0;r<this.r;r++)for(let c=0;c<this.c;c++)out.d[r*this.c+c]=this.d[r*this.c+c]+o.d[c];}return out;}
+    sub(o){const out=new M(this.r,this.c);for(let i=0;i<this.d.length;i++)out.d[i]=this.d[i]-o.d[i];return out;}
+    mul(o){const out=new M(this.r,this.c);for(let i=0;i<this.d.length;i++)out.d[i]=this.d[i]*o.d[i];return out;}
+    T(){const out=new M(this.c,this.r);for(let r=0;r<this.r;r++)for(let c=0;c<this.c;c++)out.d[c*this.r+r]=this.d[r*this.c+c];return out;}
+    mm(o){const out=new M(this.r,o.c);for(let i=0;i<this.r;i++)for(let j=0;j<o.c;j++){let s=0;for(let k=0;k<this.c;k++)s+=this.g(i,k)*o.g(k,j);out.s(i,j,s);}return out;}
+    rs(){const out=new M(1,this.c);for(let c=0;c<this.c;c++){let s=0;for(let r=0;r<this.r;r++)s+=this.g(r,c);out.d[c]=s;}return out;}
+  }
+  const sig=z=>z.map(x=>1/(1+Math.exp(-Math.max(-50,Math.min(50,x)))));
+  const relu=z=>z.map(x=>Math.max(0,x));
+
+  class Lin {
+    constructor(i,o,rng){const s=Math.sqrt(1/i);this.W=M.rn(o,i,rng,0,s);this.b=M.z(1,o);this.xC=null;this.mW=M.z(o,i);this.vW=M.z(o,i);this.mb=M.z(1,o);this.vb=M.z(1,o);this.t=0;}
+    fwd(x){this.xC=x;return x.mm(this.W.T()).add(this.b);}
+    bwd(dz){const N=dz.r;return{dW:dz.T().mm(this.xC).sc(1/N),db:dz.rs().sc(1/N),dx:dz.mm(this.W)};}
+  }
+  class RL{constructor(){this.xC=null;}fwd(x){this.xC=x;return relu(x);}bwd(dz){return dz.mul(this.xC.map(x=>x>0?1:0));}}
+
+  const B1=.9,B2=.999,EP=1e-8;
+  function adam(l,dW,db,lr){l.t++;const c1=1-B1**l.t,c2=1-B2**l.t;for(let i=0;i<l.W.d.length;i++){const g=dW.d[i];l.mW.d[i]=B1*l.mW.d[i]+(1-B1)*g;l.vW.d[i]=B2*l.vW.d[i]+(1-B2)*g*g;l.W.d[i]-=lr*(l.mW.d[i]/c1)/(Math.sqrt(l.vW.d[i]/c2)+EP);}for(let i=0;i<l.b.d.length;i++){const g=db.d[i];l.mb.d[i]=B1*l.mb.d[i]+(1-B1)*g;l.vb.d[i]=B2*l.vb.d[i]+(1-B2)*g*g;l.b.d[i]-=lr*(l.mb.d[i]/c1)/(Math.sqrt(l.vb.d[i]/c2)+EP);}}
+  function fwdAll(ls,x){let o=x;for(const l of ls)o=l.fwd(o);return o;}
+  function pr(ls,X){return sig(fwdAll(ls,X));}
+  function acc(ls,X,y){const p=pr(ls,X).d;let c=0;for(let i=0;i<X.r;i++)if((p[i]>=.5?1:0)===Math.round(y.d[i]))c++;return c/X.r;}
+  function step(ls,X,y,lr){let o=X;for(const l of ls)o=l.fwd(o);let dz=sig(o).sub(y);const gs=[];for(let i=ls.length-1;i>=0;i--){const l=ls[i];if(l instanceof Lin){const{dx,dW,db}=l.bwd(dz);gs.push({l,dW,db});dz=dx;}else dz=l.bwd(dz);}for(const{l,dW,db}of gs)adam(l,dW,db,lr);}
+
+  function makeRings(n,noise,seed){
+    const rng=new RNG(seed),n0=n>>1,n1=n-n0,X=M.z(n,2),y=M.z(n,1);
+    for(let i=0;i<n0;i++){const t=rng.next()*2*Math.PI,r=rng.norm(1,noise);X.s(i,0,r*Math.cos(t));X.s(i,1,r*Math.sin(t));}
+    for(let i=0;i<n1;i++){const t=rng.next()*2*Math.PI,r=rng.norm(2,noise);X.s(n0+i,0,r*Math.cos(t));X.s(n0+i,1,r*Math.sin(t));y.d[n0+i]=1;}
+    return{X,y};
+  }
+
+  let B=null;
+  const GRID=80;
+  function getBounds(X){let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;for(let i=0;i<X.r;i++){x0=Math.min(x0,X.g(i,0));x1=Math.max(x1,X.g(i,0));y0=Math.min(y0,X.g(i,1));y1=Math.max(y1,X.g(i,1));}return{x0:x0-.5,x1:x1+.5,y0:y0-.5,y1:y1+.5};}
+  function tp(x,y,b,W,H){return{x:(x-b.x0)/(b.x1-b.x0)*W,y:H-(y-b.y0)/(b.y1-b.y0)*H};}
+  function drawBnd(id,ls,data){
+    const cv=document.getElementById(id),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,b=B;
+    const grid=M.z(GRID*GRID,2);
+    for(let gy=0;gy<GRID;gy++)for(let gx=0;gx<GRID;gx++){const idx=gy*GRID+gx;grid.s(idx,0,b.x0+(gx+.5)/GRID*(b.x1-b.x0));grid.s(idx,1,b.y0+(1-(gy+.5)/GRID)*(b.y1-b.y0));}
+    const ps=pr(ls,grid).d,img=ctx.createImageData(GRID,GRID);
+    const c0=[240,210,200],c1=[200,220,240];
+    for(let i=0;i<ps.length;i++){img.data[i*4]=Math.round(c0[0]+ps[i]*(c1[0]-c0[0]));img.data[i*4+1]=Math.round(c0[1]+ps[i]*(c1[1]-c0[1]));img.data[i*4+2]=Math.round(c0[2]+ps[i]*(c1[2]-c0[2]));img.data[i*4+3]=255;}
+    ctx.clearRect(0,0,W,H);
+    const tmp=document.createElement('canvas');tmp.width=GRID;tmp.height=GRID;
+    tmp.getContext('2d').putImageData(img,0,0);ctx.imageSmoothingEnabled=true;ctx.drawImage(tmp,0,0,W,H);
+    ctx.beginPath();for(let gy=0;gy<GRID-1;gy++)for(let gx=0;gx<GRID-1;gx++){const a=ps[gy*GRID+gx]>.5?1:0,bv=ps[gy*GRID+gx+1]>.5?1:0,c=ps[(gy+1)*GRID+gx]>.5?1:0,dv=ps[(gy+1)*GRID+gx+1]>.5?1:0;if(a+bv+c+dv>0&&a+bv+c+dv<4)ctx.rect(gx/GRID*W,gy/GRID*H,W/GRID,H/GRID);}
+    ctx.strokeStyle='rgba(40,40,40,.75)';ctx.lineWidth=2;ctx.stroke();
+    ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(70,70,70,.5)';ctx.lineWidth=1.5;
+    const ctr=tp(0,0,b,W,H),rr=tp(1.5,0,b,W,H).x-ctr.x;
+    ctx.beginPath();ctx.arc(ctr.x,ctr.y,rr,0,2*Math.PI);ctx.stroke();ctx.setLineDash([]);
+    for(let i=0;i<data.X.r;i++){const p=tp(data.X.g(i,0),data.X.g(i,1),b,W,H);ctx.beginPath();ctx.arc(p.x,p.y,3,0,2*Math.PI);ctx.fillStyle=Math.round(data.y.d[i])?'#5b8db8':'#c96b63';ctx.fill();ctx.lineWidth=.8;ctx.strokeStyle='rgba(255,255,255,.8)';ctx.stroke();}
+  }
+
+  function setInsight(la,ra){
+    const gap=ra-la,el=document.getElementById('ins');
+    if(ra<.1){el.textContent='Training…';return;}
+    if(gap>.2)el.innerHTML=`<b>ReLU leads by ${(gap*100).toFixed(0)}%.</b> Linear is stuck at ${(la*100).toFixed(0)}%. It can only cut a straight line. ReLU bends around the ring.`;
+    else if(gap>.05)el.innerHTML=`<b>Gap: ${(gap*100).toFixed(0)}%.</b> ReLU still has the edge. Try raising noise to widen the gap.`;
+    else el.innerHTML=`<b>Nearly tied.</b> At low noise the data is almost linearly separable. Increase noise to see the difference.`;
+  }
+
+  function postH(){window.parent.postMessage({type:'resize',h:document.body.scrollHeight+4},'*');}
+  const sl=t=>new Promise(r=>setTimeout(r,t));
+  let paused=false,abort=false,running=false,runGen=0;
+
+  async function run(){
+    const myGen=++runGen;
+    abort=true;await sl(10);
+    if(myGen!==runGen)return;
+    abort=false;paused=false;running=true;
+
+    const hidden=Math.max(4,parseInt(document.getElementById('hidden').value,10)||16);
+    const steps=Math.max(100,parseInt(document.getElementById('steps').value,10)||2000);
+    const noise=parseFloat(document.getElementById('noise').value)||.15;
+    const lr=parseFloat(document.getElementById('lr').value)||.01;
+
+    const pbtn=document.getElementById('pbtn');
+    pbtn.textContent='⏸ Pause';pbtn.className='live';
+    document.getElementById('ins').textContent='Starting training…';
+    document.getElementById('a0').textContent='—';
+    document.getElementById('a1').textContent='—';
+
+    const data=makeRings(300,noise,13);
+    B=getBounds(data.X);
+    const linLs=[new Lin(2,1,new RNG(1))];
+    const relLs=[new Lin(2,hidden,new RNG(2)),new RL(),new Lin(hidden,1,new RNG(3))];
+    const chunk=Math.max(20,Math.floor(steps/25));
+
+    for(let e=0;e<steps;e++){
+      if(abort||myGen!==runGen){running=false;return;}
+      while(paused){await sl(50);if(abort||myGen!==runGen){running=false;return;}}
+      step(linLs,data.X,data.y,.05);
+      step(relLs,data.X,data.y,lr);
+      if((e+1)%chunk===0||e===steps-1){
+        const la=acc(linLs,data.X,data.y),ra=acc(relLs,data.X,data.y);
+        document.getElementById('a0').textContent=(la*100).toFixed(1)+'%';
+        document.getElementById('a1').textContent=(ra*100).toFixed(1)+'%';
+        drawBnd('c0',linLs,data);drawBnd('c1',relLs,data);
+        setInsight(la,ra);postH();await sl(0);
+      }
+    }
+    running=false;pbtn.textContent='↻ Rerun';pbtn.className='';postH();
+  }
+
+  document.getElementById('pbtn').addEventListener('click',()=>{
+    if(!running){run();return;}
+    paused=!paused;
+    document.getElementById('pbtn').textContent=paused?'▶ Resume':'⏸ Pause';
+  });
+  window.addEventListener('load',()=>{setTimeout(postH,350);});
+  window.addEventListener('resize',postH);
+</script>
+</body>
+</html>
