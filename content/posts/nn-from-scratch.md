@@ -12,6 +12,9 @@ tags:
   - 'Education'
 categories:
   - 'Machine Learning'
+cover:
+  image: /images/nn-from-scratch-cover.png
+  alt: 'Diagram of a neural network showing input features flowing through hidden layers to output probabilities, paired with the six training steps: linear layer, activation, stacked layers, softmax and loss, backpropagation, optimizer update'
 ---
 
 A neural network is a chain of functions. Each layer takes a tensor in, does one simple mathematical operation, and passes a tensor out. There's no magic in it. It's linear algebra, a nonlinearity, and calculus, repeated.
