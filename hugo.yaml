@@ -29,6 +29,15 @@ buildDrafts: false
 buildFuture: false
 buildExpired: false
 
+markup:
+  goldmark:
+    extensions:
+      passthrough:
+        enable: true
+        delimiters:
+          block: [['\[', '\]'], ['$$', '$$']]
+          inline: [['\(', '\)']]
+
 minify:
   disableXML: true
   minifyOutput: true
