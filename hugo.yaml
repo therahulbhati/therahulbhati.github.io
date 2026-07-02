@@ -45,9 +45,9 @@ minify:
 params:
   env: production # to enable google analytics, opengraph, twitter-cards and schema.
   title: Rahul Bhati
-  subtitle: "Backend Engineering | Distributed Systems | System Design"
-  description: "Backend engineer writing about distributed systems, microservices architecture, message queues, databases, and building scalable infrastructure. Sharing practical insights from working with high-throughput systems."
-  keywords: [Backend Engineering, Distributed Systems, System Design, Microservices, Message Queues, Golang, Databases, PostgreSQL, Redis, Kafka, Kubernetes, Scalable Architecture, Software Engineering, Infrastructure]
+  subtitle: "Backend Engineering | Distributed Systems | Deep Learning & Inference"
+  description: "Backend engineer writing about distributed systems, microservices architecture, message queues, databases, and building scalable infrastructure. Also writing about deep learning and inference engineering, neural networks built from first principles, explained with the math and the PyTorch code side by side."
+  keywords: [Backend Engineering, Distributed Systems, System Design, Microservices, Message Queues, Golang, Databases, PostgreSQL, Redis, Kafka, Kubernetes, Scalable Architecture, Software Engineering, Infrastructure, Deep Learning, Machine Learning, Neural Networks, PyTorch, Inference Engineering, Model Serving]
   author: Rahul Bhati
   DateFormat: "January 2, 2006"
   defaultTheme: auto # dark, light
@@ -72,7 +72,7 @@ params:
   # home-info mode
   homeInfoParams:
     Title: "Hi there 👋"
-    Content: I'm a backend engineer building highly scalable distributed systems. I write about system design, databases, and infrastructure.
+    Content: I'm a backend engineer building highly scalable distributed systems. I write about system design, databases, infrastructure, deep learning, and inference engineering.
 
   socialIcons:
     - name: x
