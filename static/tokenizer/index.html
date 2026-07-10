@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multilingual BPE Tokenizer: India page</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --ink: #1a1a1a; --muted: #666;
+    --line: #e2e2de; --accent: #0b6e4f; --accent-ink: #ffffff;
+    --chip: #eef3f0; --pass: #0b6e4f; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --card: #1d2026; --ink: #e8e8e6; --muted: #9a9a97;
+      --line: #2c3038; --accent: #3ecf8e; --accent-ink: #0e2b1f; --chip: #232a30;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 1.55rem; margin: 0 0 4px; }
+  h2 { font-size: 1.1rem; margin: 36px 0 10px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: 10px; padding: 18px 20px; }
+  .scorecard { display: flex; flex-wrap: wrap; gap: 24px; align-items: baseline; }
+  .score { font: 700 2.3rem/1 var(--mono); color: var(--accent); }
+  .score-label { color: var(--muted); font-size: .85rem; }
+  .kv { font-family: var(--mono); font-size: .9rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem;
+       text-transform: uppercase; letter-spacing: .04em; }
+  td.num { font-family: var(--mono); }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 999px;
+           font-size: .75rem; font-weight: 700; background: var(--pass); color: var(--accent-ink); }
+  .calc { font-family: var(--mono); font-size: .88rem; white-space: pre-wrap;
+          overflow-x: auto; }
+  .note { color: var(--muted); font-size: .88rem; }
+  button, select, textarea {
+    font: inherit; color: inherit; background: var(--card);
+    border: 1px solid var(--line); border-radius: 8px;
+  }
+  button { padding: 8px 16px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink);
+                   border-color: var(--accent); font-weight: 600; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+  textarea { width: 100%; min-height: 84px; padding: 10px 12px; resize: vertical; }
+  .tokens { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 12px; }
+  .tok { background: var(--chip); border: 1px solid var(--line);
+         border-radius: 6px; padding: 1px 7px; font-family: var(--mono);
+         font-size: .88rem; }
+  .tok small { color: var(--muted); font-size: .68rem; margin-left: 4px; }
+  .stat { font-family: var(--mono); font-size: .88rem; margin-top: 10px; }
+  .ok { color: var(--accent); font-weight: 600; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Multilingual BPE Tokenizer</h1>
+  <p class="sub">One shared 10,000-token vocabulary over the Wikipedia
+  <strong>India</strong> page in English, Hindi, Telugu, and Kannada,
+  evaluated on the page's <strong>HTML&nbsp;→&nbsp;Markdown</strong> rendition
+  (links preserved). Every number on this page is computed <em>live in your
+  browser</em> by running the shipped tokenizer over the shipped page texts.
+  Nothing is hardcoded.</p>
+
+  <div class="card scorecard">
+    <div>
+      <div class="score" id="score">…</div>
+      <div class="score-label">score = 1000 / (X<sub>max</sub> − X<sub>min</sub>)</div>
+    </div>
+    <div class="kv" id="scorefacts"></div>
+  </div>
+
+  <h2>Fertility ratios &amp; token statistics</h2>
+  <div class="card">
+    <table id="tbl">
+      <thead><tr>
+        <th>language</th><th>page</th><th>words</th><th>tokens</th>
+        <th>X = tokens / words</th><th>≤ 1.2</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="calc" id="calc" style="margin-bottom:0"></p>
+  </div>
+
+  <h2>How the numbers are computed</h2>
+  <div class="card note">
+    <p style="margin-top:0">The eval text is each India page's HTML converted
+    to Markdown with links preserved (html2text), NFC-normalized, whitespace
+    canonicalized to single spaces, and no other cleaning: numbers, punctuation,
+    and link syntax stay attached to words, and case is preserved.
+    <strong>Words</strong> = whitespace-delimited chunks of that markdown.
+    <strong>Tokens</strong> = BPE encoding of each word (alphabet of
+    <span id="nalpha"></span> characters + 256 byte-fallback tokens +
+    <span id="nmerges"></span> ordered merges, applied greedily by rank,
+    standard Sennrich BPE). There is no <code>&lt;unk&gt;</code>: characters
+    outside the alphabet encode as UTF-8 byte tokens and decode losslessly.
+    The tokenizer was <em>built from these same four pages</em>. Train = eval
+    is deliberate: it measures the balance ceiling, not generalization (the
+    write-up covers the held-out cost).</p>
+    <p>Because "word" is a convention, the same tokenizer is also reported
+    under two others: counting words as <code>\w+</code> regex matches on the
+    markdown gives <span id="wplusline" class="kv"></span>; on the plain-text
+    extract (no markup) with a whitespace split it gives
+    <span id="rawline" class="kv"></span>.</p>
+    <p style="margin-bottom:0" id="verify"></p>
+  </div>
+
+  <h2>Download the tokenizer</h2>
+  <div class="card">
+    <div class="row">
+      <button class="primary" id="dl-tokens">tokens.txt (all <span id="nvocab"></span> tokens)</button>
+      <button id="dl-json">combined.json (alphabet + merge list)</button>
+    </div>
+    <p class="note" style="margin-bottom:0">tokens.txt lists every token as
+    <code>id&nbsp;→&nbsp;token</code>. combined.json is the full tokenizer
+    (base alphabet and ordered merges), enough to reproduce every number on
+    this page.</p>
+  </div>
+
+  <h2>Try it</h2>
+  <div class="card">
+    <div class="row">
+      <button class="primary" id="demo-run">tokenize</button>
+    </div>
+    <textarea id="demo-text" spellcheck="false">[India](/wiki/India "India") is a country in South Asia, the seventh-largest by area, independent since 1947.</textarea>
+    <div class="stat" id="demo-stat"></div>
+    <div class="tokens" id="demo-tokens"></div>
+  </div>
+
+  <p class="note">Source: <em>India</em> on en/hi/te/kn.wikipedia.org, rendered
+  HTML → Markdown via html2text. Tokenizer, pipeline, and a held-out
+  generalization analysis are in the write-up.</p>
+</main>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+const A = DATA.alphabet.length;
+const BYTE_BASE = A;              // ids A .. A+255 are UTF-8 byte fallback
+const vocab = DATA.alphabet.slice();
+for (let b = 0; b < 256; b++)
+  vocab.push("<0x" + b.toString(16).toUpperCase().padStart(2, "0") + ">");
+for (const [a, b] of DATA.merges) vocab.push(vocab[a] + vocab[b]);
+const charToId = new Map(DATA.alphabet.map((c, i) => [c, i]));
+const rank = new Map(DATA.merges.map((p, i) => [p[0] + "," + p[1], i]));
+const utf8 = new TextEncoder();
+
+function clean(text) {
+  // NFC + single spaces; nothing else (words stay exactly as written).
+  return text.normalize("NFC").split(/\s+/).filter(Boolean).join(" ");
+}
+
+const wordCache = new Map();
+function encodeWord(word) {
+  const hit = wordCache.get(word);
+  if (hit) return hit;
+  let ids = [];
+  for (const c of word) {
+    if (charToId.has(c)) ids.push(charToId.get(c));
+    else for (const b of utf8.encode(c)) ids.push(BYTE_BASE + b);
+  }
+  while (ids.length >= 2) {
+    let bestRank = Infinity, bestPos = -1;
+    for (let i = 0; i < ids.length - 1; i++) {
+      const r = rank.get(ids[i] + "," + ids[i + 1]);
+      if (r !== undefined && r < bestRank) { bestRank = r; bestPos = i; }
+    }
+    if (bestPos < 0) break;
+    ids.splice(bestPos, 2, A + 256 + bestRank);
+  }
+  wordCache.set(word, ids);
+  return ids;
+}
+
+function fertOn(text) {
+  const words = text.split(" ");
+  let tokens = 0;
+  for (const w of words) tokens += encodeWord(w).length;
+  return { words: words.length, tokens, x: tokens / words.length };
+}
+
+// ---- live evaluation over the shipped pages -------------------------------
+const stats = {};
+const rawStats = {};
+for (const l of DATA.langs) {
+  stats[l] = fertOn(DATA.texts[l]);
+  rawStats[l] = fertOn(DATA.raw_texts[l]);
+}
+const xs = DATA.langs.map(l => stats[l].x).sort((a, b) => a - b);
+const spreadV = xs[xs.length - 1] - xs[0];
+const scoreV = 1000 / spreadV;
+
+const fmt = n => n.toLocaleString("en-US");
+document.getElementById("score").textContent =
+  scoreV.toLocaleString("en-US", { maximumFractionDigits: 1 });
+document.getElementById("scorefacts").innerHTML =
+  `X_max − X_min = ${spreadV.toExponential(3)}<br>` +
+  `vocab ${fmt(vocab.length)} / cap ${fmt(DATA.vocab_cap)}<br>` +
+  `X ≤ 1.2 : ${DATA.langs.filter(l => stats[l].x <= 1.2).length}/4 languages`;
+
+const names = { en: "English", hi: "Hindi", te: "Telugu", kn: "Kannada" };
+const tbody = document.querySelector("#tbl tbody");
+for (const l of DATA.langs) {
+  const s = stats[l];
+  tbody.insertAdjacentHTML("beforeend",
+    `<tr><td>${names[l]} (${l})</td><td class="num">${DATA.titles[l]}</td>` +
+    `<td class="num">${fmt(s.words)}</td><td class="num">${fmt(s.tokens)}</td>` +
+    `<td class="num">${s.x.toFixed(6)}</td>` +
+    `<td>${s.x <= 1.2 ? '<span class="badge">pass</span>' : "fail"}</td></tr>`);
+}
+const order = DATA.langs.slice().sort((a, b) => stats[a].x - stats[b].x);
+document.getElementById("calc").textContent =
+  `sorted: ${order.map(l => `X_${l} ${stats[l].x.toFixed(6)}`).join("  <  ")}\n` +
+  `spread = ${stats[order[3]].x.toFixed(6)} − ${stats[order[0]].x.toFixed(6)}` +
+  ` = ${spreadV.toExponential(3)}\n` +
+  `score  = 1000 / ${spreadV.toExponential(3)} = ` +
+  scoreV.toLocaleString("en-US", { maximumFractionDigits: 1 });
+
+const drift = Math.max(...DATA.langs.map(
+  l => Math.abs(stats[l].x - DATA.meta.fertilities[l])));
+document.getElementById("verify").innerHTML = drift < 1e-9
+  ? `<span class="ok">✓ live browser computation matches the Python build ` +
+    `exactly (all four fertilities, to full precision).</span>`
+  : `⚠ live computation differs from the Python build by up to ${drift}; ` +
+    `see repo.`;
+const rawXs = DATA.langs.map(l => rawStats[l].x).sort((a, b) => a - b);
+document.getElementById("rawline").textContent =
+  DATA.langs.map(l => `${l} ${rawStats[l].x.toFixed(4)}`).join("  ") +
+  ` (spread ${(rawXs[3] - rawXs[0]).toFixed(4)})`;
+const wplus = {};
+for (const l of DATA.langs) {
+  const n = (DATA.texts[l].match(/\w+/gu) || []).length;
+  wplus[l] = stats[l].tokens / n;
+}
+const wpXs = DATA.langs.map(l => wplus[l]).sort((a, b) => a - b);
+document.getElementById("wplusline").textContent =
+  DATA.langs.map(l => `${l} ${wplus[l].toFixed(4)}`).join("  ") +
+  ` (spread ${(wpXs[3] - wpXs[0]).toFixed(4)})`;
+document.getElementById("nalpha").textContent = fmt(A);
+document.getElementById("nmerges").textContent = fmt(DATA.merges.length);
+document.getElementById("nvocab").textContent = fmt(vocab.length);
+
+// ---- downloads ------------------------------------------------------------
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+document.getElementById("dl-tokens").onclick = () =>
+  download("tokens.txt",
+    vocab.map((t, i) => `${i}\t${t}`).join("\n") + "\n", "text/plain");
+document.getElementById("dl-json").onclick = () =>
+  download("combined.json",
+    JSON.stringify({ alphabet: DATA.alphabet, merges: DATA.merges }),
+    "application/json");
+
+// ---- interactive demo -----------------------------------------------------
+function runDemo() {
+  const cleaned = clean(document.getElementById("demo-text").value);
+  const box = document.getElementById("demo-tokens");
+  box.innerHTML = "";
+  let nTok = 0, nWords = 0;
+  for (const w of cleaned ? cleaned.split(" ") : []) {
+    nWords++;
+    for (const id of encodeWord(w)) {
+      nTok++;
+      box.insertAdjacentHTML("beforeend",
+        `<span class="tok">${vocab[id]
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;")}<small>${id}</small></span>`);
+    }
+  }
+  document.getElementById("demo-stat").textContent = nWords
+    ? `${nWords} words → ${nTok} tokens   fertility = ${(nTok / nWords).toFixed(4)}`
+    : "";
+}
+document.getElementById("demo-run").onclick = runDemo;
+runDemo();
+
+// ---- iframe auto-resize (when embedded in the blog post) -------------------
+if (window.parent !== window) {
+  const postSize = () => window.parent.postMessage(
+    { type: "resize", h: document.documentElement.scrollHeight + 16 }, "*");
+  window.addEventListener("load", postSize);
+  new ResizeObserver(postSize).observe(document.body);
+  postSize();
+}
+</script>
+</body>
+</html>
