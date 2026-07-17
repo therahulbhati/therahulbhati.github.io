@@ -1,0 +1,52 @@
+{
+  "variant": "wiki_faithful_markdown",
+  "languages": [
+    "en",
+    "hi",
+    "te",
+    "kn"
+  ],
+  "vocab_size": 10000,
+  "alphabet_size": 364,
+  "byte_fallback_tokens": 256,
+  "allocation": {
+    "ascii": 4124,
+    "devanagari": 2010,
+    "telugu": 1911,
+    "kannada": 1322,
+    "other": 13
+  },
+  "padding_merges": 0,
+  "rows": {
+    "en": {
+      "tokens": 117659,
+      "faithful_units": 186367,
+      "fertility": 0.6313295808807353,
+      "visible_roundtrip": true
+    },
+    "hi": {
+      "tokens": 55783,
+      "faithful_units": 88359,
+      "fertility": 0.63132221958148,
+      "visible_roundtrip": true
+    },
+    "te": {
+      "tokens": 22912,
+      "faithful_units": 36292,
+      "fertility": 0.6313237077041772,
+      "visible_roundtrip": true
+    },
+    "kn": {
+      "tokens": 7761,
+      "faithful_units": 12293,
+      "fertility": 0.6313349060440901,
+      "visible_roundtrip": true
+    }
+  },
+  "spread": 1.2686462610100868e-05,
+  "raw_score": 78824179.02716297,
+  "hindi_penalty_factor": 1.0,
+  "hindi_adjusted_score": 78824179.02716297,
+  "english_penalty_factor": 1.0,
+  "english_adjusted_score": 78824179.02716297
+}

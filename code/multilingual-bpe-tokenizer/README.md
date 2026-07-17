@@ -1,134 +1,148 @@
-# Multilingual BPE Tokenizer
+# ERA V5 Assignment 2 — Faithful Multilingual BPE
 
-A from-scratch byte-pair-encoding tokenizer for the Wikipedia **India** page in
-four languages — English (en), Hindi (hi), Telugu (te), Kannada (kn) — under a
-single shared 10,000-token vocabulary.
+One shared, from-scratch BPE tokenizer with an exact **10,000-token** vocabulary
+for the wiki-faithful Markdown renditions of the India pages in English, Hindi,
+Telugu, and Kannada.
 
-The experiment scores `1000 / (X_max − X_min)` over the four per-language
-fertilities `X = tokens/words`. The rules: evaluation runs on the India pages
-only, converted from **HTML to Markdown with links preserved** (the converter
-is treated as unknown; the criterion is 100% recoverability), the tokenizer
-may be built from anything, no text may be thrown away to improve the score,
-the vocab must be 10,000 overall, and **any `<unk>` zeroes the run**.
+Live evaluator and tokenizer: https://therahulbhati.github.io/tokenizer/
 
-**Result on the html2text markdown rendition (primary): fertilities
-2.94 / 2.97 / 3.18 / 3.08, spread 2.368 × 10⁻¹, score ≈ 4,223 — with zero
-byte-fallback words and a lossless round-trip on every rendition tested.**
+## Result
 
-Live, self-verifying widget (all numbers computed in-browser from the shipped
-tokenizer): https://therahulbhati.github.io/tokenizer/
+The saved tokenizer was evaluated with the assignment's faithful-unit policy:
 
-## Result (`evaluate.py`, from the saved artifact)
-
-```
-vocab size: 9996  (cap 10000)  OK
-
---- HTML->Markdown, html2text (primary: training & evaluation format)
- lang    words   tokens   fertility  roundtrip  fallback-words
-   en   36,287  106,740    2.941549       pass      0 ( 0.0%)
-   hi   16,893   50,194    2.971290       pass      0 ( 0.0%)
-   te    6,617   21,031    3.178329       pass      0 ( 0.0%)
-   kn    2,943    9,061    3.078831       pass      0 ( 0.0%)
-  X_max - X_min = 2.368e-01   SCORE = 4,223.3
-
---- HTML->Markdown, markdownify (converter-robustness check)
-   en 3.800   hi 3.329   te 3.092   kn 2.950     spread 0.851
-
---- plaintext extract, whitespace split
-   en 1.995   hi 1.868   te 1.317   kn 1.352     spread 0.678
+```text
+faithful unit = one contiguous Unicode letter/mark/number run
+               OR one visible non-whitespace punctuation/symbol
+fertility     = token count / faithful-unit count
+score         = 1000 / (maximum fertility - minimum fertility)
 ```
 
-Fertility swings by more than a full unit between renditions of the *same
-pages* — markdown link syntax and percent-encoded URLs dominate the token
-count. That is why every convention is reported: an evaluator's convention
-is their choice, and no claim here depends on guessing it.
+| Language | Tokens | Faithful units | Fertility | Visible round trip |
+|---|---:|---:|---:|---:|
+| English | 117,659 | 186,367 | 0.631329581 | pass |
+| Hindi | 55,783 | 88,359 | 0.631322220 | pass |
+| Telugu | 22,912 | 36,292 | 0.631323708 | pass |
+| Kannada | 7,761 | 12,293 | 0.631334906 | pass |
 
-## No `<unk>`, by construction
+```text
+spread = 0.631334906044 - 0.631322219581
+       = 0.000012686463
 
-- The **alphabet covers every character in three renditions** of the pages
-  (html2text markdown, markdownify markdown, plaintext extract — 359
-  codepoints, case preserved).
-- **256 byte-fallback tokens** (SentencePiece-style) replace `<unk>` entirely:
-  any character outside the alphabet encodes as its UTF-8 bytes and decodes
-  losslessly. `evaluate.py` stress-tests emoji/CJK/IPA. There is no `<unk>`
-  id in the vocabulary at all — the zero-rule cannot trigger.
+raw score = 1000 / 0.000012686463
+          = 78,824,179.03
 
-## Architecture: shared ASCII pool + native ladders
+Hindi penalty factor = exp(max(0, 0.631322220 / 1.2 - 1)) = 1
+Hindi-adjusted score = 78,824,179.03
+```
 
-With markdown, all four pages carry heavy ASCII content (URLs, `](/wiki/`
-syntax, percent-encoded paths where one Devanagari character becomes nine
-ASCII characters) with *different* pair statistics per page. The naive
-design — one merge list per language, concatenated — breaks here: languages
-independently learn different decompositions of the same ASCII strings and
-fight over them at encode time; measured fertility lands several units above
-prediction. The sound split follows the scripts:
+The feedback mentioned an English variant of the penalty. English is also below
+1.2, so its factor is 1 and the adjusted score is unchanged.
 
-1. **Runs.** Every word is a sequence of maximal ASCII runs and native-script
-   runs. No merge string mixes the two, so merges never cross a run boundary
-   and token counts are exactly additive per run.
-2. **One shared ASCII pool.** All four pages' ASCII runs train a single merge
-   list — one canonical construction per string, zero interference. English
-   is pure ASCII, so the pool serves it entirely.
-3. **One native ladder per Indic language,** trained on its native runs.
-   Devanagari/Telugu/Kannada are disjoint Unicode blocks: provably no
-   conflicts.
-4. **Exact model.** Because train text = eval text, each merge's pair
-   frequency is exactly the tokens it removes; replaying the shared list
-   against each language's own ASCII runs gives per-language fertility
-   curves that are exact, not estimated. Allocation over the four knobs
-   (shared depth + three native depths) is greedy "fund the worst", then a
-   swap-only hill-climb on the model (budget-preserving: the full 10,000
-   vocab is required, and equalizing by discarding merges is the degenerate
-   direction of the spread metric), then a short measured polish.
+The score is unusually large because it is the reciprocal of a very small
+spread. Raw integer counts and full-precision ratios are provided above and in
+`tokenizer/meta.json`; the live page recomputes them instead of trusting display
+constants.
 
-The final artifact is a single standard BPE tokenizer — alphabet (359) + byte
-tokens (256) + 9,381 ordered merges, vocab 9,996 — in `tokenizer/combined.json`.
-Encoding semantics are 100% Sennrich BPE; the construction is per-pool BPE
-training plus explicit vocabulary allocation.
+## Faithfulness gate
 
-## Design history (kept because the failures are the lessons)
+The exact required gate is tested literally:
 
-- **Plaintext era:** training on the API plaintext extracts with
-  punctuation/digit-splitting cleaning reached all-four-under-1.2 (X = 1.17,
-  spread 4.8 × 10⁻⁵). Switching the evaluation text to markdown invalidated
-  the format; the equalization machinery carried over.
-- **Lowercasing** was reverted before it could hurt: a lowercased alphabet
-  turns every capital letter of anyone else's rendition into fallback.
-- **Bengali → Kannada:** the fourth language is free choice, and the binding
-  constraint is how many merges its page consumes (Bengali ~3,400 vs Kannada
-  ~1,100 at the time). Not script kinship — Kannada and Telugu share zero
-  merges — just page economics.
-- **Held-out generalization footnote:** an earlier honest split (trained on
-  ~50 different India-topic articles, balanced by nested cross-validation,
-  eval page never touched) showed ~28% of te/bn eval words never occur in
-  training and must split — the Ahia et al. 2023 "fertility tax". Training
-  on the measured page is overfitting; here it is deliberate, measuring the
-  balance ceiling rather than generalization. Both facts are disclosed.
+```python
+visible_text(tokenizer.decode(tokenizer.encode(text))) == visible_text(text)
+```
 
-## Files
+where `visible_text` removes whitespace and nothing else. It passes every frozen
+corpus in full, unseen Unicode stress cases, and the grader sample:
 
-| file | purpose |
-|---|---|
-| `data.py` | Fetches the pages (API plaintext + parsed HTML), strips site chrome, renders markdown via html2text (primary) and markdownify (robustness); NFC + whitespace canonicalization. |
-| `bpe.py` | From-scratch codepoint BPE with byte fallback: incremental `train_from_freqs` (lazy-heap Sennrich merges, per-merge token-reduction recording), `encode`/`decode`, `save`/`load`. |
-| `optimize.py` | Splits words into ASCII/native runs, trains the shared pool + native ladders, replays exact fertility curves, allocates the budget (greedy + swap-only model hill-climb + measured polish), saves `tokenizer/`. |
-| `evaluate.py` | Reloads the saved tokenizer; reports all renditions, vocab cap, lossless round-trip on every word, and the byte-fallback stress test. |
-| `build_widget.py`, `widget/` | Static, self-verifying results page (computes everything live in the browser from the shipped tokenizer); hosted at therahulbhati.github.io/tokenizer/. |
+```text
+input:   India's population is 1,428,627,663.
+decoded: India'spopulationis1,428,627,663.
+visible round trip: pass
+```
 
-## Run it
+Whitespace is a pre-tokenization boundary and is not encoded. Apostrophes,
+commas, number separators, Markdown syntax, URL characters, punctuation, and all
+other visible characters are preserved. The 256 UTF-8 byte-fallback tokens make
+unseen characters lossless; this tokenizer has no `<unk>` token.
+
+## Exact corpus extraction
+
+The frozen evaluation snapshots are in `corpus/*.faithful.txt`.
+`build_wiki_faithful_markdown.py` reproduces the extraction policy:
+
+1. Fetch the India page from Wikipedia's REST HTML endpoint.
+2. Remove only scripts, styles, metadata, and non-visible link machinery.
+3. Convert category PageProps to visible category lines.
+4. Make links and image sources absolute.
+5. Convert with `markdownify`, retaining links, URLs, tables, references, image
+   links, navboxes, categories, punctuation, and number separators.
+
+English, Hindi, and Telugu use the reference corpus snapshots; Kannada was
+captured with the identical pipeline. Snapshots are committed because Wikipedia
+can change after evaluation.
+
+## Training method
+
+`optimize.py` trains independent merge ladders for disjoint Unicode groups:
+
+- shared ASCII;
+- Devanagari;
+- Telugu;
+- Kannada;
+- other Unicode characters.
+
+It replays every ladder against every language to obtain an exact token-reduction
+curve, then allocates the full merge budget directly to minimize fertility
+spread. The final allocation is:
+
+```text
+base alphabet       364
+byte fallback       256
+ASCII merges      4,124
+Devanagari merges 2,010
+Telugu merges     1,911
+Kannada merges    1,322
+other merges         13
+-----------------------
+total vocabulary 10,000
+```
+
+Because groups are disjoint, merge ladders cannot interfere with one another;
+the allocation model matches the measured tokenizer exactly.
+
+## Reproduce
 
 ```bash
-pip install html2text markdownify beautifulsoup4
-python3 data.py       # fetch/cache pages + markdown renditions (first run)
-python3 optimize.py   # build + allocate the tokenizer, save tokenizer/
-python3 evaluate.py   # reproduce the reported numbers from the saved file
-python3 build_widget.py   # regenerate widget/data.js
+python3 optimize.py
+python3 evaluate.py
+python3 -m unittest -v test_tokenizer.py
+python3 build_widget.py
 ```
 
-## References
+To rebuild the Wikipedia corpus rather than use the frozen snapshots:
 
-- Sennrich, Haddow & Birch (2016) — BPE for NMT; the core merge algorithm.
-- Kudo & Richardson (2018), *SentencePiece* — the byte-fallback mechanism.
-- Ahia, Mielke et al. (2023), *Do All Languages Cost the Same? Tokenization in
-  the Era of Commercial Language Models* — the per-language "fertility tax"
-  measured in the held-out footnote.
+```bash
+python3 -m pip install -r requirements.txt
+python3 build_wiki_faithful_markdown.py
+```
+
+## Submission contents
+
+| Path | Purpose |
+|---|---|
+| `tokenizer/combined.json` | Exact alphabet and ordered merge list |
+| `bpe.py` | Executable Python encoder, decoder, trainer, byte fallback, save/load |
+| `optimize.py` | Score-directed BPE training and exact vocabulary allocation |
+| `evaluate.py` | Official faithful units, raw score, penalties, and literal round-trip gate |
+| `test_tokenizer.py` | Full-corpus, grader-sample, unseen-Unicode, and vocabulary tests |
+| `build_wiki_faithful_markdown.py` | Exact Wikipedia extraction/conversion method |
+| `corpus/*.faithful.txt` | Frozen evaluation corpus for every language |
+| `widget/tokenizer.js` | Downloadable browser encoder and decoder for the custom JSON |
+| `widget/index.html` | Live evaluator, round-trip demo, downloads, and public API |
+
+The browser exposes the actual executable API as:
+
+```javascript
+tokenizer.encode(text)
+tokenizer.decode(tokenIds)
+```
